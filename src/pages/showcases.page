@@ -1,0 +1,169 @@
+<apex:page controller="DemoAppController" showHeader="false" sidebar="false" docType="html-5.0" standardstylesheets="false">
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+
+    <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, '/styles/styles.css')}"/>
+    <apex:stylesheet value="{!URLFOR($Resource.swipeView, '/style.css')}"/>
+    
+    <style>
+        .paging ul li.active a {
+            background: url({!$Site.prefix}/resource/TDM_Resources/images/pagingDotActive.svg) no-repeat center;
+        }
+
+        /*html {
+            height: 114%;
+        }*/
+    </style>
+
+    <div id="wrapper">
+        <section class="paging">
+            <ul id="nav">
+                <li>
+                    <a href="{!$Site.prefix}/apex/demoAppHome" class="homeIcon">
+                        <img src="{!$Site.prefix}/resource/TDM_Resources/images/sliderHomeIcon.png"/>
+                    </a>
+                </li>
+
+            </ul>
+        </section>
+    </div>
+
+    <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, '/js/jquery.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.swipeView, '/swipeview.js')}"/>
+
+    <script type="text/javascript">
+        var gallery, el, i, page, dots,
+            slides = [];
+
+        $(document).ready(function() {
+            document.addEventListener('touchmove', function (e) { e.preventDefault(); }, false);
+            getShowcases();
+            hideURLBar();
+            window.onorientationchange = function() {
+                hideURLBar();
+            }
+        });
+
+        function hideURLBar() {
+
+            var CSS = document.documentElement.style;
+            // Set a timeout...
+            setTimeout(function(){
+                // Hide the address bar!
+                CSS.height = '200%';
+                CSS.overflow = 'visible';
+
+                window.scrollTo(0, 1);
+
+                CSS.height = window.innerHeight + 'px';
+                CSS.overflow = 'hidden';
+            }, 0);
+        }
+
+        function getURLParameter(name) {
+            return decodeURI(
+                (RegExp(name + '=' + '(.+?)(&|$)').exec(location.search)||[,null])[1]
+            );
+        }
+
+        function getShowcases() {
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.DemoAppController.getShowcases}',
+                'a0Ci0000001Y3qF',
+                function(result, event){
+                    if (event.status) {
+                        slides = result;
+                        console.log(slides);
+                    }
+                    initializeSlides();
+                    setNavBar();
+                    goToCurrentPage();
+                }, 
+                {escape: true}
+            );
+        }
+
+        /* initialize slide values for beginning panels */
+        function initializeSlides() {
+            gallery = new SwipeView('#wrapper', { numberOfPages: slides.length });
+            var title, button
+
+            for (i=0; i<3; i++) {
+                page = i==0 ? slides.length-1 : i-1;
+
+                /* title */
+                title = $("<div></div>").addClass("customerInspirationHeader")
+                                        .append($("<h1></h1>").html(slides[page].Customer_Name__c))
+                                        .append($("<p></p>").html(slides[page].Use_Case_Description__c));
+
+                /* learn more button */
+                button = $("<a></a>").attr("id", "leadGenButton")
+                                    .attr("href", "{!$Site.prefix}/apex/LeadGen?id="+slides[page].Id)
+                                    .addClass("button")
+                                    .addClass("carousel-btn")
+                                    .html("Learn More");
+
+                // set background add put everything together
+                $(gallery.masterPages[i]).append($("<section></section>")
+                                                    .addClass("customerInspiration")
+                                                    .css("background", "url({!$Site.Prefix}/servlet/servlet.FileDownload?file="+slides[page].Attachments[0].Id+")")
+                                                    .append(title)
+                                                    .append(button));
+
+                // platform logo
+                $(gallery.masterPages[i]).append($("<div></div>").addClass("platFormLogo"));
+            }
+
+            /* update panels on slide change */
+            gallery.onFlip(function () {
+                var el,
+                    upcoming,
+                    i;
+
+                for (i=0; i<3; i++) {
+                    upcoming = gallery.masterPages[i].dataset.upcomingPageIndex;
+                    if (upcoming != gallery.masterPages[i].dataset.pageIndex) {
+                        el = $(gallery.masterPages[i]).children("section");
+
+                        el.css("background", "url({!$Site.Prefix}/servlet/servlet.FileDownload?file="+slides[upcoming].Attachments[0].Id+")");
+                        el.children("div").children("h1").html(slides[upcoming].Customer_Name__c);
+                        el.children("div").children("p").html(slides[upcoming].Use_Case_Description__c);
+                        el.children("a").attr("href", "{!$Site.prefix}/apex/LeadGen?id="+slides[upcoming].Id);
+                    }
+                }
+
+                document.querySelector('#nav .active').className = '';
+                dots[gallery.pageIndex+1].className = 'active';
+            });
+        }
+
+        /* add dots to nav bar for each showcase */
+        function setNavBar() {
+            var length = slides.length;
+            var dot;
+
+            for (var i = 0; i < length; i++) {
+                dot = $("<li></li>").append($("<a></a>)").attr("onclick", "gallery.goToPage("+i+")"));
+                $("#nav").append(dot);
+                
+                if (i == 0) {
+                    dot.addClass("active");
+                }
+            }
+            dots = document.querySelectorAll('#nav li');
+        }
+
+        function goToCurrentPage() {
+            id = getURLParameter('id');
+
+            for (var i=0; i<slides.length;i++) {
+                if (slides[i].Id == id) {
+                    $("#nav li:nth-child("+(i+2)+")").children("a").click();
+                    break;
+                }
+            }
+        }
+    </script>
+</apex:page>

@@ -1,0 +1,157 @@
+<apex:page doctype="html-5.0" standardstylesheets="false" showheader="false" sidebar="false">
+
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <title>Salesforce TDM</title>
+        <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/styles.css')}"/>
+        <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/jquery.mobile-1.3.1.min.css')}"/>  
+        <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/jquery.min.js')}"/>
+        <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/underscore-min.js')}"/>
+        <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.js')}"/>
+        <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, 'js/ForceTk.js')}" />
+        <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.force.js')}"/>
+        <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, 'js/D3.js')}" />
+
+        <script>
+            var client = new forcetk.Client();
+            client.setSessionToken('{!$Api.Session_ID}');
+            client.apiVersion = 'v27.0';
+            client.proxyUrl = null;
+            client.instanceUrl = '';
+            var currUserId = '{!$User.Id}';
+            var reportId,pageId;
+            if(location.search.indexOf("&reportId=")!=-1)
+               {
+                reportId =location.search.split("&reportId=")[1];
+                pageId = location.search.split("&reportId=")[0];
+               }
+            else
+               {
+                pageId ="";
+                reportId = "00Oi0000003CNE0";
+                }
+            $(function () {
+                $(".homeLink").attr("href", "/DemoApp/apex/apppages" + pageId);  
+                $(".backButton").attr("href", "/DemoApp/apex/apppages" + pageId);                          
+                InventoryReport();
+            });
+
+            function InventoryReport() {
+
+                Backbone.Force.initialize(client);
+                    
+                var app = {};              
+
+                app.ProductModelCollection = Backbone.Force.Collection.extend({
+                    query: "SELECT Inventory_On_Hand__c,Name FROM Product2"
+                });
+
+                //Get Report Data
+                var reportData = new app.ProductModelCollection();
+
+                reportData.fetch({
+                    success: function (collection,response) {
+                        var pieChartData = [];
+                        collection.each(function (model) {
+                            pieChartData.push({ "name": model.get("Name"), "value": model.get("Inventory_On_Hand__c") });
+                        });
+
+                        if (pieChartData.length == 0) { return; }
+                        DrawChart(pieChartData);
+                    },
+                    error: function (error) {
+
+                        alert("Error in retrieving Report Data.");
+                    }
+
+                });
+
+                function DrawChart(data) {
+
+                    var width = window.innerWidth - 60,
+                        height = window.innerHeight - 30;
+                        radius = width /2 ;
+
+                    var color = d3.scale.category10();
+                    
+                    var group = d3.select("#legend").append("g")
+                        .attr("transform", function(d, i) { return "translate(0,0)"; })
+                   
+                    var legend = group.selectAll("g")
+                                      .data(data)
+                                      .enter().append("g")
+                                      .attr("transform", function(d, i) { return "translate(0," + i * 20 + ")"; })
+                                      .attr("class", "legend")
+                                      .attr("width", radius * 2)
+                                      .attr("height", radius * 2)
+                                      
+                        legend.append("rect")
+                            .attr("width", 10)
+                            .attr("height", 10)
+                            .attr("fill", function (d) { return color(d.name) });
+                    
+                    legend.append("text")
+                          .attr("x", 24)
+                          .attr("y", 9)
+                          .attr("dy", ".30em")
+                          .text(function(d) { return d.name; });
+
+                    var canvas = d3.select("body")
+                                    .select("svg")
+                                    .attr("width", 1500)
+                                    .attr("height", 270);
+
+                    var group = canvas.append("g")
+                        .attr("transform", "translate(" + width * 0.6 + "," + height *0.4 + ")");
+
+                    var arc = d3.svg.arc()
+                              .innerRadius(0)
+                              .outerRadius(radius);
+
+                    var pie = d3.layout.pie()
+                              .value(function (d) { return d.value; });
+
+                    var arcs = group.selectAll(".arc")
+                               .data(pie(data))
+                              .enter()
+                              .append("g")
+                              .attr("class", "arc");
+                    arcs.append("path")
+                        .attr("d", arc)
+                        .attr("fill", function (d) { return color(d.data.name) });                 
+                            arcs.append("text")
+                                .attr("transform",function(d){ return "translate("+arc.centroid(d)+")";})
+                                .text(function(d){return d.data.value;})
+                                 .attr("text-anchor", "middle");      
+                }
+            }
+        </script>
+    </head>
+
+    <body>
+        <div class="wrapper innerPage">
+        <section class="topBar">
+        <a href="#" id="main-menu-button-left" class="backButton"></a>
+        <h1>Inventory</h1>
+        <a href="index.html" id="main-menu-button-right" class="homeLink"></a>
+        </section>
+    <h2>Inventory Report</h2>
+    <div class="bleed">
+       <section class="inspectionReport">       
+       <div id="container">
+       
+           <div>
+        <svg id="chart"></svg>
+           
+             
+        <svg id="legend"></svg>
+           </div>
+  </div>    
+    </section>      
+    </div>    
+</div>
+
+    </body>
+  
+</apex:page>

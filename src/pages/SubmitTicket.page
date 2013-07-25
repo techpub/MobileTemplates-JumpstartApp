@@ -1,0 +1,232 @@
+<apex:page controller="TicketHelper" doctype="html-5.0" standardstylesheets="false" showheader="false" sidebar="false"> 
+   
+   <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+       <meta name="viewport" content="width=device-width, initial-scale=1,  minimum-scale=1, maximum-scale=1"/>
+ <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+   <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/styles.css')}"/>
+   <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, 'js/jquery.js')}"/>
+    
+<div class="wrapper innerPage">
+    <section class="topBar">
+        <a id="main-menu-button-left" class="backButton"></a>
+        <h1>Ticket</h1>
+        <a id="main-menu-button-right" class="homeLink"></a>
+    </section>
+    <div id="content"></div>
+    <script type="text/template" id="submitTicket-template">
+    <h2>Submit Ticket</h2>
+    <div class="bleed">    
+    <section class="leadGenForm">       
+        <form method="post" id="submitTicket">
+            <select id="Category">
+              <option value="0">Select Category</option>               
+             </select>
+            <select id="Priority">  
+                <option value="0">Select Priority</option>    
+             </select>      
+            <textarea id="Description" name="Description" type="text" placeholder="Problem Description"></textarea>
+            <input type="submit" id="Submit" value="submit"/>
+        </form>
+    </section>
+    </div>    
+        </script>
+    <script type="text/template" id="confirmTicket-template">
+        <h2>Thank You</h2>
+        <div class="bleed">    
+        <section class="leadGenForm thankYou">      
+            <p>Your ticket number is <b><%- ticketId  %></b>.</p>
+            <p>If you need immediate assistance call now.</p>
+            <a href="tel:1-800-667-6389" class="button"><span class="phone"></span>Call</a>
+        </section>
+        </div>    
+    </script>
+</div>
+ 
+       <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/underscore-min.js')}" />
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.js')}" />
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/forcetk.js')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.force.js')}"/>
+      <script type="text/javascript">
+          function getCategories() {
+
+              TicketHelper.getTicketCategories(
+                  function (result, event) {
+                      if (event.status) {
+                          $.each(result, function (val, text) {
+                              $('#Category').append($('<option></option>').val(text).html(text))
+                          });
+                          $('#Category').attr('size',result.length + 1);
+                      } else if (event.type === 'exception') {
+                          window.location.href = "/DemoApp/apex/Error";
+                      } else {
+                          window.location.href = "/DemoApp/apex/Error";
+                      }
+                  },
+                  { escape: true }
+              );
+          }
+
+          function getPriorities() {
+
+              TicketHelper.getTicketPriorities(
+              function (result, event) {
+                  if (event.status) {
+                      $.each(result, function (val, text) {
+                          $('#Priority').append($('<option></option>').val(text).html(text))
+                      });
+                      $('#Priority').attr('size',result.length + 1);
+                  } else if (event.type === 'exception') {
+                      window.location.href = "/DemoApp/apex/Error";
+                  } else {
+                      window.location.href = "/DemoApp/apex/Error";
+                  }
+              },
+              { escape: true }
+              );
+
+          }
+    
+            
+    
+          (function () {
+          
+           // When ready...
+            window.addEventListener("load",function() {
+            var CSS = document.documentElement.style;
+                // Set a timeout...
+                setTimeout(function(){
+                    // Hide the address bar!
+                   CSS.height = '200%';
+  CSS.overflow = 'visible';
+
+  window.scrollTo(0, 1);
+
+  CSS.height = window.innerHeight + 'px';
+  CSS.overflow = 'hidden';
+                }, 0);
+            });
+          
+              var client = new forcetk.Client();
+              client.setSessionToken('{!$Api.Session_ID}');
+              client.apiVersion = 'v27.0';
+              client.proxyUrl = null;
+              client.instanceUrl = '';
+              var currUserId = '{!$User.Id}';
+
+              $(document).ready(function () {
+                  submitTicket();
+                  $("#main-menu-button-left").click(function () {
+                      if(window.location.hash) {
+                        var hash = window.location.hash.substring(1); //Puts hash in variable, and removes the # character
+                     
+                       if(hash.indexOf('ConfirmTicket') === 0){
+                         window.history.back();       
+                       }else{
+                        window.location.href = "/DemoApp/apex/apppages" + location.search;
+                       }
+                          }
+                  });
+                   $("#main-menu-button-right").click(function () {
+                      window.location.href = "/DemoApp/apex/apppages" + location.search;
+                  });
+              });
+
+              function submitTicket() {
+                  Backbone.Force.initialize(client);
+                  var tdm = {};
+
+                  //Model
+                  tdm.Ticket = Backbone.Force.Model.extend({
+                      type: "IT_Ticket__c",
+                      fields: ['Id', 'Category__c','Priority__c', 'Problem_Description__c']
+                  });
+
+                  tdm.TicketView = Backbone.View.extend({
+                      tagName: 'div',
+                      template: _.template($('#submitTicket-template').html()),
+                      initialize: function () {
+                          //Backbone.Validation.bind(this);
+                      },
+                      render: function () {
+                          this.$el.html(this.template(this.model.toJSON()));
+                          return this;
+                      },
+                      events: {
+                          'click #Submit': 'submit'
+                      },
+                      submit: function (e) {
+                          e.preventDefault();
+                          if ($('#Category').val() === '0') {
+                              alert('Please select category');
+                              return;
+                          }
+                          if ($('#Priority').val() === '0') {
+                              alert('Please select Priority');
+                              return;
+                          }
+                          this.model.save(this.newAttributes(), {
+                              wait: true,
+                              success: function (m) {
+                                  var Id = m.get('Id');
+                                  tdm.router.navigate('ConfirmTicket/' + Id, { trigger: true });
+                              }
+                          });
+                      },
+                      newAttributes: function () {
+                          return {
+                              Category__c: $('#Category').val().trim(),
+                              Problem_Description__c: $('#Description').val().trim(),
+                              Priority__c: $('#Priority').val().trim()
+                          }
+                      },
+                      resetform: function () {
+                          $('#Category').val('');
+                          $('#Description').val('');
+                          $('#Priority').val('');
+                      }
+                  });
+
+                  tdm.ConfirmTicketView = Backbone.View.extend({
+                      tagName: 'div',
+                      template: _.template($('#confirmTicket-template').html()),
+                      render: function () {
+                          this.$el.html(this.template({ ticketId: this.options["ticketId"] }));
+                          return this;
+                      }
+                  })
+
+
+                  tdm.Router = Backbone.Router.extend({
+
+                      routes: {
+                          "SubmitTicket": "LoadForm",
+                          "ConfirmTicket/:Id": "ConfirmTicket"
+                      },
+                      LoadForm: function () {
+                          var ticketModel = new tdm.Ticket({});
+                          var ticketView = new tdm.TicketView({ model: ticketModel });
+
+                          getCategories();
+                          getPriorities();
+
+                          $("#content").html(ticketView.render().el);
+                      },
+                      ConfirmTicket: function (Id) {
+                          var confirmTicketView = new tdm.ConfirmTicketView({ ticketId: Id });
+                          $("#content").html("");
+                          $("#content").append(confirmTicketView.render().el);
+                      }
+                  });
+
+                  tdm.router = new tdm.Router();
+                  Backbone.history.start();
+                  tdm.router.navigate("SubmitTicket", { trigger: true });
+                  return tdm;
+              }
+          })();
+          </script>
+           
+    
+</apex:page>

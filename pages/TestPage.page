@@ -1,0 +1,20 @@
+<apex:page >
+Simple Test page for DemoApp
+<p>
+First, <a href="https://login.salesforce.com/services/auth/sso/00Di0000000JUGMEA4/TDMDemoApp?site={!URLENCODE("https://cloudcable.secure.force.com/DemoApp")}">login</a> then come back here.
+</p>
+<ul>
+<li><a href="https://cloudcable.secure.force.com/DemoApp/MyContacts">MyContacts</a></li>
+<li><a href="https://cloudcable.secure.force.com/DemoApp/DocusignStart">Sign For Package</a></li>
+<li><a href="https://cloudcable.secure.force.com/DemoApp/Take_Survey">Take A Survey</a></li>
+<li><a href="https://cloudcable.secure.force.com/DemoApp/SubmitTicket">Submit A Ticket</a></li>
+<li><a href="https://cloudcable.secure.force.com/DemoApp/bookRoom">Book A Room</a></li>
+<li><a href="https://cloudcable.secure.force.com/DemoApp/InventoryReport">TODO - Inventory Report</a></li>
+<li><a href="https://cloudcable.secure.force.com/DemoApp/NearByAppointments">Nearby Appointments</a></li>
+<li><a href="https://cloudcable.secure.force.com/DemoApp/InspectionReport">Inspection Report</a></li>
+<li><a href="https://cloudcable.secure.force.com/DemoApp/ProjectMilestones">Project Milestones</a></li>
+
+
+</ul>
+   
+</apex:page>

@@ -1,0 +1,421 @@
+<apex:page doctype="html-5.0" standardstylesheets="false" showheader="false" sidebar="false">
+ 
+   <head>
+   <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+       <meta name="viewport" content="width=device-width, initial-scale=1,  minimum-scale=1, maximum-scale=1"/>
+   <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/Survey.css')}"/>
+   </head>       
+   <body>
+ <div id="app-wrapper">     
+<nav id="main-menu" class="main-menu">
+<a href="" class="home">Home</a>
+</nav>
+     
+<header>
+<div class="main-menu-button main-menu-button-left" id="main-menu-button-left"><a class="left-arrow">&nbsp;</a></div>
+<div  style="float:right" class="main-menu-button main-menu-button-right" id="main-menu-button-right"><a href="" class="home">&nbsp;</a></div>
+<h1 style="font-weight:bold;">Survey</h1>
+</header>
+
+ <div id="app-content">   
+     
+     <script type="text/template" id="selectSurvey">
+         <section>
+          <div class="content">
+              <form>
+                  <div class="form-header-survey">Select Survey</div>
+                  <p>Please select from the available surveys:</p>
+                  <div class="form-control-group">
+                      <div class="form-control">
+                          <select id="drpdwnSurvey">                 
+                              <option  id=0>Select</option> 
+                              <%_.each(surveys,function(item){ var k=item.toJSON();%>  
+                                <option id="<%= k.Id %>"><%= k.Description__c %></option> 
+                              <%});%>
+                              </select> 
+                      </div>
+                  </div>
+              </form>
+          </div><!--.content-->
+      </section>
+     </script>
+
+
+ <script type ="text/template" id="dvHeader">
+ <div class="detail-view-header">
+  <div class="content">
+      <h2 class="heading"><%- name %></h2>
+  </div>
+  </div>
+</script>
+     
+      <script type="text/template" id="headerSurvey">
+     
+     <section>
+         <div class="content">
+             <form>
+     <div class="form-header-survey"><%- name %> </div>
+          </form>
+          </div>	
+     </section>
+        
+     </script>
+     
+       <!--Take Survey View---->
+<div id="content"></div>
+
+<script type="text/template" id="surveyQuestionBoolean">
+      <section>
+  <div  class="content">
+      <strong> <%- qNum%>. </strong><%- question__c  %>
+       <form id="<%- Id  %>">
+      <div class="form-control-group">
+        <div class="form-control span-50">
+          <input type="radio" name="name" value="yes" class="Selected"><label class="thumbs thumbs-up ">&nbsp;</label>
+        </div>
+        <div class="form-control span-50">
+          <input type="radio" name="name" value="no" class="Selected"><label class="thumbs thumbs-down">&nbsp;</label>
+        </div>
+      </div>
+           </form>    
+  </div><!--.content-->
+          </section>
+</script>
+
+<script type="text/template" id="surveyQuestionText">
+       <section>
+    <div class="content">
+    <form id="<%- Id  %>">
+     <strong> <%- qNum%>. </strong><%- question__c  %>
+      <div class="form-control-group">
+        <div class="form-control form-control-textarea">
+          <textarea class="Answers" name="text"></textarea>
+        </div>
+      </div>
+    </form>
+  </div>
+           </section>
+     </script>      
+
+
+     <script type="text/template" id="surveyQuestionRadio">
+         <section>
+	    <div class="content">
+		<form id="<%- Model.Id  %>">
+        <strong> <%- Model.qNum%>. </strong><%- Model.question__c  %>
+		<div class="form-control-group">
+			<div class="form-control form-control-select">
+				<select id="drpdwnChoice">
+                    <option value="0">Select</option>
+                    <%  var responses=Model.Survey_Responses__r; %>
+					<%_.each(responses.records, function(item){ %>
+                    <option value ="<%= item.Response_Option__c%>"><%= item.Response_Option__c%></option>
+                    <%});%>
+				</select>
+			</div>
+		</div>
+            </form>
+	</div>
+</section>
+
+     </script>
+
+     <script type="text/template" id="btnSubmit">
+     
+     <div class="content" style="text-align:center">
+         <form>
+          <a id="Submitbtn" style="margin-left:15px;margin-bottom:5px;background-color: #78A5AD" class="button" href="#">Submit</a>
+             </form>
+   </div>
+          
+      </script>
+
+     
+<section id="thanksection" style="display:none">
+	<div class="content">
+		<form>
+			<div class="form-header-survey">Thank you</div>
+			<p>Thank you for taking the time to complete this survey.</p>
+            <div style="text-align:center">
+            <a id="aHome" style="background-color: #78A5AD" class="home button" href="/DemoApp/apex/apppages?id=a0Ci0000001Y3qF">Go‌ to‌ Home</a>
+            </div>
+		</form>
+	</div><!--.content-->
+</section>
+
+   <!-- Libraries -->
+  <!-- ========= -->
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/jquery.min.js')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/underscore-min.js')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.js')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/forcetk.js')}" />
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.force.js')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/bootstrap.min.js')}"/>
+  
+  <!-- =============== -->
+  <!-- Javascript code -->
+  <!-- =============== -->
+      
+      <script type="text/javascript">
+
+          $(".home").attr("href", "/DemoApp/apex/apppages" + location.search);
+
+          var client = new forcetk.Client();
+          client.setSessionToken('{!$Api.Session_ID}');
+          client.proxyUrl = null;
+          client.instanceUrl = '';
+          var currUserId = '{!$User.Id}';
+
+          $(document).ready(function () {
+
+              var k = myapp();
+              $("#main-menu-button-left").click(function () {
+                  var hash = window.location.hash.substring(1); //Puts hash in variable, and removes the # character
+                      switch (hash) {
+                          case ("TakeSurvey1"):
+                              window.location.href = "/DemoApp/apex/apppages" + location.search;
+                              break;                                                     
+                          default:
+                              window.history.back();
+                      }               
+                  
+              });
+          });
+
+          function myapp() {
+              Backbone.Force.initialize(client);
+              var app = { AnswersTest: {}, Header: "", isAnswered: false };
+
+              //Model
+              app.Survey = Backbone.Force.Model.extend({
+                  type: "Survey__c",
+                  fields: ['Id', 'Description__c']
+              });
+
+              app.SurveyCollection = Backbone.Force.Collection.extend({
+
+                  model: app.Survey,
+                  query: "WHERE Name != ''"
+              });
+
+              app.Surveyquestion = Backbone.Force.Model.extend({
+                  defaults: {
+                      surveyId: null
+                  },
+                  type: "SurveyQuestion__c"
+              });
+
+              app.SurveyAnswer = Backbone.Force.Model.extend({
+                  type: "Survey_Answer__c"
+              });
+
+              app.SurveyAnswerCollection = Backbone.Force.Collection.extend({
+                  model: app.SurveyAnswer
+              });
+
+              //--------
+              // Views.....
+              //------------
+
+              app.TakeSurveyView = Backbone.View.extend({
+
+              });
+              //Collection
+
+              app.TakeSurveysView = Backbone.View.extend({
+                  events: {
+                      'change #drpdwnSurvey': 'GetSurveyDetails'
+                  },
+                  GetSurveyDetails: function (e) {
+
+                      var k = e.target.options[e.target.selectedIndex].id;
+                      if (k == 0) {
+                          return;
+                      }
+                      else {
+                          app.Header = e.target.options[e.target.selectedIndex].text;
+                          app.router.navigate('TakeSurvey2/' + k, { trigger: true });
+                      }
+                  },
+                  render: function () {
+                      var template = _.template($("#dvHeader").html(), { name: "Select Survey" });
+                      this.$el.html(template);
+                      template = _.template($("#selectSurvey").html(), { surveys: this.model.models });
+                      this.$el.append(template);
+                      return this;
+                  }
+
+              });
+
+              app.ResultSurveyView = Backbone.View.extend({
+                  template: null,
+
+                  events: {
+                      "click .Selected": "GetAnswerType",
+                      "blur .Answers": "GetAnswerType",
+                      "change #drpdwnChoice": "GetAnswerType",
+                  },
+                  GetAnswerType: function (e) {
+                      var id = e.target.form['id'];
+                      if ((e.target.value == 0) || (!e.target.value)) { app.AnswersTest[id] = null; return; }
+                      app.AnswersTest[id] = { "Answer__c": e.target.value, "Survey_Question__c": id, "Survey__c": this.options["SurveyName"] };
+                  },
+                  render: function () {
+
+                      var responses = this.model.get("Survey_Responses__r");
+
+                      if ((this.model.get("Response_Type__c").toUpperCase() != "TEXT") && (responses == null)) {
+                          return this;
+                      }
+
+                      if ((this.model.get("Response_Type__c").toUpperCase() == "BOOLEAN") && (responses != null)) {
+
+                          this.model.set("Option1", responses.records[0].Response_Option__c);
+                          this.model.set("Option2", responses.records[1].Response_Option__c);
+
+                          this.template = _.template($("#surveyQuestionBoolean").html(), this.model.toJSON());
+                      }
+                      else if (this.model.get("Response_Type__c").toUpperCase() == "TEXT") {
+                          this.template = _.template($("#surveyQuestionText").html(), this.model.toJSON());
+                      }
+                      else if (this.model.get("Response_Type__c").toUpperCase() == "RADIO") {
+
+                          this.template = _.template($("#surveyQuestionRadio").html(), { Model: this.model.toJSON() });
+
+                      }
+                      this.$el.html(this.template);
+                      return this;
+                  }
+              })
+
+
+              app.ResultSurveyViews = Backbone.View.extend({
+
+                  answersCollection: new app.SurveyAnswerCollection(),
+                  events: {
+                      "click #Submitbtn": "Save"
+                  },
+                  Save: function () {
+                      for (key in app.AnswersTest) {
+                          if (app.AnswersTest[key] != null) {
+                              app.isAnswered = true;
+                              this.answersCollection.create(app.AnswersTest[key], {
+                                  success: function () {
+                                      app.router.navigate('TakeSurvey3', { trigger: true });
+                                  }, error: function () { app.router.navigate('TakeSurveyError', { trigger: true }); }
+                              });
+                          }
+                          else {
+                              app.isAnswered = app.isAnswered ? true : false;
+                          }
+                      }
+                      if (!app.isAnswered) { alert("Please enter valid input."); }
+                  },
+                  render: function () {
+
+                      var template = _.template($("#dvHeader").html(), { name: app.Header });
+                      var temp = _.template($("#headerSurvey").html(), { name: app.Header });
+                      this.$el.html(template);
+                      this.$el.append(temp);
+                      this.$el.append("<div>");
+                      for (var i = 0, l = this.model.models.length; i < l; i++) {
+
+                          this.renderOne(this.model.models[i], this.options["survey"], i + 1);
+                          //this.$el.append("</br>");
+                      }
+                      this.$el.append("</br>");
+                      this.$el.append($("#btnSubmit").html());
+
+                      //this.$el.append('<div><input id="btnSubmit" style="height:auto;width:auto;background-color: #78A5AD;" type="submit" value="Submit" class="Save"/></div>');
+                      this.$el.append("</div>");
+                      return this;
+                  },
+
+                  renderOne: function (survey, surveyId, qNum) {
+
+                      survey.set("qNum", qNum);
+                      app.AnswersTest[survey.get("Id")] = null;
+                      app.isAnswered = false;
+                      var view = new app.ResultSurveyView({ model: survey, SurveyName: surveyId });
+                      this.$el.append(view.render().el);
+                  }
+
+              });
+
+              //Router
+
+              app.Router = Backbone.Router.extend({
+
+                  routes: {
+                      "TakeSurvey1": "LoadSurveys",
+                      "TakeSurvey2/:Id": "GetSurveyQuestions",
+                      "TakeSurvey3": "showConfirmation",
+                      "TakeSurveyError": "showError"
+                  },
+                  LoadSurveys: function () {
+                      var surveyList = new app.SurveyCollection();
+                      surveyList.fetch({
+                          success: function () {
+
+                              var test = new app.TakeSurveysView({ model: surveyList });
+                              $("#thanksection").hide();
+                              $("#content").html("");
+                              $("#content").append(test.render().el);
+                          },
+                          error: function (collection, response) {
+                              window.location.href = "/DemoApp/apex/Error";
+                          }
+                      });
+                  },
+                  GetSurveyQuestions: function (Id) {
+
+                      app.SurveyQuestionCollection = Backbone.Force.Collection.extend({
+                          model: app.Surveyquestion,
+                          query: "select question__c,Id,Response_Type__c,(select Response_Option__c from Survey_Responses__r order by CreatedDate) from SurveyQuestion__c where survey__c='" + Id + "' order by createdDate",
+                          initialize: function () {
+
+                          }
+                      });
+
+                      var surveyQuestions = new app.SurveyQuestionCollection({});
+                      var surveyId = Id;
+                      surveyQuestions.fetch({
+
+                          success: function (collection, response) {
+                              if (collection.length == 0) {
+                                  alert("No questions for the selected survey.");
+                                  return;
+                              }
+                              var test = new app.ResultSurveyViews({ model: surveyQuestions, survey: surveyId });
+                              $("#thanksection").hide();
+                              $("#content").html("");
+                              $("#content").append(test.render().el);
+                          },
+                          error: function (collection, response) {
+                              window.location.href = "/DemoApp/apex/Error";
+                          }
+                      });
+                  },
+
+                  showConfirmation: function () {
+                      $("#content").html("");
+                      $("#thanksection").show();
+                  },
+                  showError: function () {
+                      window.location.href = "/DemoApp/apex/Error";
+                  }
+
+              });
+              app.router = new app.Router();
+              Backbone.history.start();
+              app.router.navigate("TakeSurvey1", { trigger: true });
+              return app;
+          }
+          </script>
+          
+</div>
+</div>
+   </body>  
+    
+</apex:page>

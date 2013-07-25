@@ -1,0 +1,6 @@
+<apex:page showHeader="false" sidebar="false" standardStylesheets="false">
+    <h2>TDM DEMO APP Social Sign On</h2>
+    <p>
+         <a href="https://login.salesforce.com/services/auth/sso/00Di0000000JUGMEA4/TDMDemoApp?site={!URLENCODE('https://cloudcable.secure.force.com/DemoApp')}">Login via Facebook</a> 
+    </p>
+</apex:page>

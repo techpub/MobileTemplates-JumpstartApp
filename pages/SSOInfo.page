@@ -1,0 +1,31 @@
+<apex:page doctype="html-5.0" standardstylesheets="false" showheader="false" sidebar="false">
+ <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/styles.css')}"/>
+<title>Social Sign On</title>
+  
+</head>
+
+<body>
+<div class="wrapper innerPage">
+    <section class="topBar">
+        <a href="#" class="backButton"></a>
+        <h1>Social Sign On</h1>
+        <a href="/DemoApp" class="homeLink"></a>
+    </section>
+    <h2>Information</h2>
+    <div class="bleed">    
+    <section class="leadGenForm thankYou">      
+        <p>You are about to authenticate using your Facebook Id. Once authenticated, you will be
+        redirected to the app homepage. After that, all the micro-moment apps in the App Inspirational gallery
+        will be enabled for you to try out.</p>
+        <a href="https://login.salesforce.com/services/auth/sso/00Di0000000JUGMEA4/TDMDemoApp?site=https://cloudcable.secure.force.com/DemoApp/apex/apppages?id=$PAGEID" class="button">Log Me In!</a>
+    </section>
+    </div>    
+</div>
+</body>
+</html>
+
+</apex:page>

@@ -1,0 +1,87 @@
+<apex:page controller="DemoAppController" showHeader="false" sidebar="false" docType="html-5.0" standardstylesheets="false">
+    
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <title>Salesforce TDM</title>
+
+    <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, '/styles/styles.css')}"/>
+
+    <style>
+        .bannerText {
+            margin-top: 10px;
+        }
+    </style>
+
+    <div class="wrapper">
+        <section class="homePage">
+            <article class="innovationBanner">
+                <div class="bannerContent">
+                    <apex:image url="{!URLFOR($Resource.TDM_Resources,'/images/innovationIcon.png')}" styleClass="sectionIcon"/>
+                    <span class="bannerText">App<br />Innovation</span>
+                    <!-- <span class="swipeText">(Swipe Up)</span> -->
+                </div>
+            </article>
+            <article class="inspirationBanner">
+                <div class="bannerContent">
+                    <apex:image url="{!URLFOR($Resource.TDM_Resources,'/images/inspirationIcon.png')}" styleClass="sectionIcon"/>
+                    <span class="bannerText">Customer<br />Inspiration</span>
+                    <!-- <span class="swipeText">(Swipe Down)</span> -->
+                </div>
+            </article>
+        </section>
+    </div>
+
+    <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, '/js/jquery.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.swipeView, '/swipeview.js')}"/>
+
+    <script type="text/javascript">
+        $(function () {
+
+            $(".inspirationBanner").click(function() {
+                // navigate('{!$Site.Prefix}/apex/showcases', 'slideup', false);
+                window.location.href = '{!$Site.Prefix}/apex/showcases';
+            });
+
+            $(".innovationBanner").click(function() {
+                // navigate('{!$Site.Prefix}/apex/apppages', 'slidedown', false);
+                window.location.href = '{!$Site.Prefix}/apex/apppages';
+            });
+
+            // disable overscrolling
+            document.body.addEventListener('touchmove',function(event){
+                event.preventDefault();
+            });
+            
+            hideURLBar();
+            window.onorientationchange = function() {
+            	hideURLBar();
+            }
+        });
+
+		function hideURLBar() {
+			if (window.orientation === 90 || window.orientation === -90) {
+        		$(".homePage").css("height", "129%");
+        		$(".innovationBanner").css("background-image", "/images/innovationBgL.png");
+        		$(".inspirationBanner").css("background-image", "/images/inspirationBgL.png");
+        	} else {
+        		$(".homePage").css("height", "114%");
+        		$(".innovationBanner").css("background-image", "/images/innovationBg.png");
+        		$(".inspirationBanner").css("background-image", "/images/inspirationBg.png");
+        	}
+        	var CSS = document.documentElement.style;
+            // Set a timeout...
+            setTimeout(function(){
+                // Hide the address bar!
+            	CSS.height = '200%';
+				CSS.overflow = 'visible';
+
+				window.scrollTo(0, 1);
+
+				CSS.height = window.innerHeight + 'px';
+				CSS.overflow = 'hidden';
+            }, 0);
+		}
+    </script>
+</apex:page>

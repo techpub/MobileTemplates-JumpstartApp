@@ -1,0 +1,75 @@
+<apex:page docType="html-5.0" standardStylesheets="false" showHeader="false" sidebar="false">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Lead Gen Form</title>
+  <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/styles.css')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/jquery.min.js')}" /> 
+</head>
+    
+
+<body>
+
+<!--  ----------------------------------------------------------------------  -->
+<!--  NOTE: Please add the following <FORM> element to your page.             -->
+<!--  ----------------------------------------------------------------------  -->
+<div class="wrapper innerPage">
+    <section class="topBar">
+        <a id="btnback" href="" class="backButton"></a>
+        <h1>Lead Gen</h1>
+        <a href="/DemoApp" class="homeLink"></a>
+    </section>
+    <h2>I want to get started</h2>
+    <div class="bleed">  
+     
+<section class="leadGenForm">
+   
+        <p>Completing the brief form below is your first step to getting starting build your own
+           engaging mobile apps on the Salesforce Platform.</p>
+<form action="https://cloudcable.secure.force.com/DemoApp/servlet/servlet.WebToLead?encoding=UTF-8" method="POST" id="leadGenForm">
+ 
+<input type="hidden" name="oid" value="00Di0000000JUGM" />
+<input id="retURL" type="hidden" name="retURL"/>
+
+<!--  ----------------------------------------------------------------------  -->
+<!--  NOTE: These fields are optional debugging elements. Please uncomment    -->
+<!--  these lines if you wish to test in debug mode.                          -->
+<!--     <input type="hidden" name="debug" value="1" />  -->                             
+  <!-- <input type="hidden" name="debugEmail" value="rajanc@aditi.com" />-->        
+<!--  ----------------------------------------------------------------------  -->
+
+<input  id="first_name" maxlength="40" name="first_name" placeholder="First Name" size="20" type="text" /><br/>
+
+<input  id="last_name" maxlength="80" name="last_name" placeholder="Last Name" size="20" type="text" /><br/>
+
+<input  id="email" maxlength="80" name="email" size="20" placeholder="Email" type="text" /><br/>
+    
+<input  id="phone" maxlength="40" name="phone" placeholder="Phone" size="20" type="text" /><br/>
+    
+<input  id="company" maxlength="40" name="company" size="20" placeholder="Company" type="text" /><br/>
+
+<input  id="city" maxlength="40" name="city" placeholder="City" size="20" type="text" /><br/>
+
+<input  id="state" maxlength="20" name="state" placeholder="State" size="20" type="text" /><br/>
+
+<input type="submit" value="Submit"  name="submit"/>
+    </form>
+   </section>
+  
+</div>
+ </div>
+
+    <script>
+        $(document).ready(function () {
+           $("#retURL").val("/DemoApp/apex/ConfirmLead" + location.search);
+            $(".homeLink").attr("href","/DemoApp/apex/showcases" + location.search);
+            $("#btnback").click(function () {
+                window.history.back();                                    
+            });            
+        });
+    </script>
+
+</body>
+
+</apex:page>

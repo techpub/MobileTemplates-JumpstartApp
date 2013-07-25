@@ -1,0 +1,29 @@
+<apex:page doctype="html-5.0" standardstylesheets="false" showheader="false" sidebar="false">
+ <html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/styles.css')}"/>
+<title>Salesforce TDM</title>
+  
+</head>
+
+<body>
+<div class="wrapper innerPage">
+    <section class="topBar">
+        <a href="#" class="backButton"></a>
+        <h1>Error</h1>
+        <a href="/DemoApp" class="homeLink"></a>
+    </section>
+    <h2>Oh snap!</h2>
+    <div class="bleed">    
+    <section class="leadGenForm thankYou">      
+        <p>We’re sorry the page you requested may have been moved or deleted.</p>
+        <a href="/DemoApp" class="button">Go to Home</a>
+    </section>
+    </div>    
+</div>
+</body>
+</html>
+
+</apex:page>

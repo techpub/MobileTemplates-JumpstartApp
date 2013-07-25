@@ -1,0 +1,401 @@
+<apex:page doctype="html-5.0" standardstylesheets="false" showheader="false" sidebar="false">
+  <head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Salesforce TDM</title>
+  <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/styles.css')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/jquery.min.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, 'js/jquery.mobile-1.3.1.min.js')}"/>
+   <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/jquery.mobile-1.3.1.min.css')}"/>  
+   <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/underscore-min.js')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.js')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/forcetk.js')}" />
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.force.js')}"/>
+  
+  <script>
+      var client = new forcetk.Client();
+      client.setSessionToken('{!$Api.Session_ID}');
+      client.apiVersion = 'v27.0';
+      client.proxyUrl = null;
+      client.instanceUrl = '';
+      var currUserId = '{!$User.Id}';
+      $(function () {  
+          $.mobile.linkBindingEnabled = false;
+          $.mobile.hashListeningEnabled = false;                 
+          $(".homeLink").attr("href", "/DemoApp/apex/apppages" + location.search);             
+          bookRoom();
+          $(".backButton").click(function () {
+               var hash = window.location.hash.substring(1); //Puts hash in variable, and removes the # character
+                      switch (hash) {
+                          case ("BookARoom1"):
+                              window.location.href = "/DemoApp/apex/apppages" + location.search;
+                              break;                                                     
+                          default:
+                              window.history.back();
+                      }   
+          });
+      });
+
+      function bookRoom() {
+          Backbone.Force.initialize(client);
+          var app = {};
+
+          //Model
+          app.reservationModel = Backbone.Force.Model.extend({
+              type: "ConferenceRoomReservation__c"
+          });
+
+          //Views
+          app.bookRoomView = Backbone.View.extend({
+              render: function () {
+                  var template = _.template($("#bookRoom1").html(), {});
+                  this.$el.html(template);
+                  return this;
+              }
+          });
+
+          //confirmView
+          app.confirmView = Backbone.View.extend({
+              render: function () {
+                  var template = _.template($("#roomBooked").html(), this.model.toJSON());
+                  this.$el.html(template);
+                  return this;
+              },
+              renderMessage: function () {
+                  var template = _.template($("#noRoom").html(), {});
+                  this.$el.html(template);                 
+                  return this;
+              }
+          });
+
+          app.ConvertTime = function (time) {
+              var hrs = 00;
+              var mins = 00;
+              var n = [];
+              n = time.trim().split(":");
+              if ((time.indexOf("PM") != -1)) {
+                  if (parseInt(n[0]) == 12) {
+                      hrs = 12;
+                  }
+                  else {
+                      hrs = 12 + parseInt(n[0]);
+                  }
+              }
+              else {
+                  if (parseInt(n[0]) == 12) {
+                      n[0] = "0";
+                  }
+                  hrs = "0" + n[0].trim();
+              }
+              return "T" + hrs + ":" + (n[1].split(" "))[0] + ":00-08:00";
+          };
+
+          //Function to retrieve booked rooms
+          app.GetBookedRooms = function () {
+
+              if ($('#attendeesdrpdwn').children("option:selected").index() == 0
+                 || $("#startTime").children("option:selected").index() == 0
+                 || $("#endTime").children("option:selected").index() == 0
+                 || $("#datepicker").val() == "Select Date") {
+                  alert("Please enter valid input.")
+                  return;
+              }
+              attendees = $('#attendeesdrpdwn').children("option:selected").text();
+              var date = $("#datepicker1").val();
+              if (!date) { alert("Please select valid Date.") };              
+              startTime = app.ConvertTime($("#startTime").children("option:selected").text());
+              endTime = app.ConvertTime($("#endTime").children("option:selected").text());
+              startDateTime = date + startTime;
+              endDateTime = date + endTime;   
+
+              //Validate the inputs
+              if (new Date(startDateTime) > new Date(endDateTime) || (new Date() > new Date(startDateTime))) {
+                  alert("Please select valid start date and end date");
+                  return;
+              }
+              var location;
+              var onSuccess = function (position) {
+                  var soqlCollection = Backbone.Force.Collection.extend({
+                      //soql query
+                      query: "select Id,Building_Name__c,RoomImage__c,(select id from Attachments)," +
+                             "(select Reservation_Start__c,Reservation_End__c from ConferenceRoomReservations__r" +
+                             " where (Reservation_end__c >" + startDateTime + " and Reservation_start__c <=" +
+                             startDateTime + ") or(Reservation_end__c >=" +
+                             endDateTime + " and Reservation_start__c <" +
+                             endDateTime + "))from ConferenceRoom__c where Seating_Capacity__c >=" + attendees + " order by  DISTANCE(GeoLocation__c, GEOLOCATION(" + position.coords.latitude + "," + position.coords.longitude + "), 'mi')"
+
+                  });
+                  var roomsAvailable = new soqlCollection();
+                  roomsAvailable.fetch({
+                      success: function (collection, respons) {
+                          var rooms = [];
+                          collection.each(function (model) {
+                              if (model.get("ConferenceRoomReservations__r") == null) {
+                                  rooms.push(model);
+                              }
+                          });
+
+                          if (rooms.length > 0) {
+                              bookedRoom = rooms[0];                              
+                              var toBesaved = new app.reservationModel();
+                              toBesaved.set('ConferenceRoom__c', bookedRoom.get("Id"));
+                              toBesaved.set('Reservation_Start__c', startDateTime);
+                              toBesaved.set('Reservation_End__c', endDateTime);
+                              toBesaved.save(null, {
+                                  success: function (model, response) {
+                                  },
+                                  error: function (model, response) {
+                                      alert('Error executing SOQL query!');
+                                  }
+                              });
+                              app.router.navigate('BookARoom2', { trigger: true });
+                          }
+                          else {
+
+                              app.router.navigate('BookARoom3', { trigger: true });
+                          }
+
+                      },
+                      error: function (collection, response) {
+                          alert('Executing SOQL query failed!');
+                      }
+                  });
+              };
+
+              var onError = function () {
+                  alert("Error");
+              };
+
+              if ("geolocation" in navigator) {
+                  navigator.geolocation.getCurrentPosition(onSuccess, onError);
+              }
+          };
+
+
+          //router
+          app.Router = Backbone.Router.extend({
+
+              routes: {
+                  "BookARoom1": "LoadBooking",
+                  "BookARoom2": "ConfirmBooking",
+                  "BookARoom3": "showMessage"
+              },
+
+              LoadBooking: function () {
+                  var bookRoomView = new app.bookRoomView();
+                  $("#content").html("");
+                  $("#content").html(bookRoomView.render().$el.html());
+                  $("#btnBook").click(function () {
+                      app.GetBookedRooms();
+                  });
+                  var value = window.innerWidth - 30 + "px";
+                  $("#datepicker1").width(value);
+                  $(window).on("orientationchange", function (event) {
+                      value = window.innerWidth - 30 + "px";
+                      $("#datepicker1").width(value);
+                   });
+                  var today = new Date();
+                  var month = today.getMonth()+1>9?today.getMonth()+1:"0"+(today.getMonth()+1)
+                  $("#datepicker1").val(today.getFullYear()+"-"+month+"-"+today.getDate());                  
+              },
+              ConfirmBooking: function () {
+                  var confirmView = new app.confirmView({ model: bookedRoom });
+                  $("#content").html("");
+                  $("#content").html(confirmView.render().$el.html());
+                  $(".home").attr("href", "/DemoApp/apex/apppages" + location.search);   
+              },
+              showMessage: function () {
+                  var confirmView = new app.confirmView({});
+                  $("#content").html("");
+                  $("#content").html(confirmView.renderMessage().$el.html());
+                  $(".edit").click(function(){
+                      window.history.back();
+                      });
+              }
+          });
+          app.router = new app.Router();          
+          Backbone.history.start();
+          app.router.navigate('BookARoom1', { trigger: true });
+      }
+
+  </script>
+</head>
+
+<body>
+<div class="wrapper innerPage">
+    <section class="topBar">
+        <a href="" class="backButton" id="main-menu-button-left"></a>
+        <h1>Booking</h1>
+        <a href="" class="homeLink" id="main-menu-button-right"></a>
+    </section>
+    <div id="content"></div>
+    <script type="text/template" id="bookRoom1">
+        <h2>Book A Room</h2>
+    <div class="bleed">
+      <section class="leadGenForm">         
+        <form method="post" id="bookRoom">
+          <select id="attendeesdrpdwn">
+            <option>Number of Attendees</option>
+            <option>1</option>
+            <option>2</option>
+            <option>3</option>
+            <option>4</option>
+            <option>5</option>
+            <option>6</option>
+            <option>7</option>
+            <option>8</option>
+            <option>9</option>
+            <option>10</option>
+            <option>11</option>
+            <option>12</option>
+            <option>13</option>
+            <option>14</option>
+            <option>15</option>
+            <option>16</option>
+            <option>17</option>
+            <option>18</option>
+            <option>19</option>
+            <option>20</option>
+          </select>
+           
+          <div class="row">            
+              <input type="date" id="datepicker1" name="Select Date" style="border:1px solid rgba(153,153,153,0.8);box-sizing:border-box;padding:10px;height:40px;color:#333;font-family:Arial, Helvetica, sans-serif;font-size:15px;" />
+             <!-- <input type="text" class="bookingDate" id="datepicker" readonly value="Select Date"/>
+                <a href="#" class="datePicker" id="datePickerButton"></a>-->
+                  </div>              
+          <select id="startTime">
+              <option>Start Time</option>
+              <option> 12:00 AM </option>
+              <option> 12:30 AM </option>
+              <option> 1:00 AM </option>
+              <option> 1:30 AM </option>
+              <option> 2:00 AM </option>
+              <option> 2:30 AM </option>
+              <option> 3:00 AM </option>
+              <option> 3:30 AM </option>
+              <option> 4:00 AM </option>
+              <option> 4:30 AM </option>
+              <option> 5:00 AM </option>
+              <option> 5:30 AM </option>
+              <option> 6:00 AM </option>
+              <option> 6:30 AM </option>
+              <option> 7:00 AM </option>
+              <option> 7:30 AM </option>
+              <option> 8:00 AM </option>
+              <option> 8:30 AM </option>
+              <option> 9:00 AM </option>
+              <option> 9:30 AM </option>
+              <option> 10:00 AM </option>
+              <option> 10:30 AM </option>
+              <option> 11:00 AM </option>
+              <option> 11:30 AM </option>
+              <option> 12:00 PM </option>
+              <option> 12:30 PM </option>
+              <option> 1:00 PM </option>
+              <option> 1:30 PM </option>
+              <option> 2:00 PM </option>
+              <option> 2:30 PM </option>
+              <option> 3:00 PM </option>
+              <option> 3:30 PM </option>
+              <option> 4:00 PM </option>
+              <option> 4:30 PM </option>
+              <option> 5:00 PM </option>
+              <option> 5:30 PM </option>
+              <option> 6:00 PM </option>
+              <option> 6:30 PM </option>
+              <option> 7:00 PM </option>
+              <option> 7:30 PM </option>
+              <option> 8:00 PM </option>
+              <option> 8:30 PM </option>
+              <option> 9:00 PM </option>
+              <option> 9:30 PM </option>
+              <option> 10:00 PM </option>
+              <option> 10:30 PM </option>
+              <option> 11:00 PM </option>
+              <option> 11:30 PM </option>
+          </select>
+          <select id="endTime">
+              <option>End Time</option>
+              <option> 12:00 AM </option>
+              <option> 12:30 AM </option>
+              <option> 1:00 AM </option>
+              <option> 1:30 AM </option>
+              <option> 2:00 AM </option>
+              <option> 2:30 AM </option>
+              <option> 3:00 AM </option>
+              <option> 3:30 AM </option>
+              <option> 4:00 AM </option>
+              <option> 4:30 AM </option>
+              <option> 5:00 AM </option>
+              <option> 5:30 AM </option>
+              <option> 6:00 AM </option>
+              <option> 6:30 AM </option>
+              <option> 7:00 AM </option>
+              <option> 7:30 AM </option>
+              <option> 8:00 AM </option>
+              <option> 8:30 AM </option>
+              <option> 9:00 AM </option>
+              <option> 9:30 AM </option>
+              <option> 10:00 AM </option>
+              <option> 10:30 AM </option>
+              <option> 11:00 AM </option>
+              <option> 11:30 AM </option>
+              <option> 12:00 PM </option>
+              <option> 12:30 PM </option>
+              <option> 1:00 PM </option>
+              <option> 1:30 PM </option>
+              <option> 2:00 PM </option>
+              <option> 2:30 PM </option>
+              <option> 3:00 PM </option>
+              <option> 3:30 PM </option>
+              <option> 4:00 PM </option>
+              <option> 4:30 PM </option>
+              <option> 5:00 PM </option>
+              <option> 5:30 PM </option>
+              <option> 6:00 PM </option>
+              <option> 6:30 PM </option>
+              <option> 7:00 PM </option>
+              <option> 7:30 PM </option>
+              <option> 8:00 PM </option>
+              <option> 8:30 PM </option>
+              <option> 9:00 PM </option>
+              <option> 9:30 PM </option>
+              <option> 10:00 PM </option>
+              <option> 10:30 PM </option>
+              <option> 11:00 PM </option>
+              <option> 11:30 PM </option>
+          </select>          
+          <a class="button" id="btnBook">Book available room</a>
+        </form>
+      </section>
+    </div>
+     </script>
+    <script type="text/template" id="roomBooked">
+    <h2>your room is: <span class="uppercase"><%- Building_Name__c %></span></h2>
+    <div class="bleed">    
+    <section class="bookedRoom">
+        <h3><%- Building_Name__c %> </h3>
+    <div class="roomPlan" style="text-align:center">       
+    <img width="80%" src="{!$Site.Prefix}/servlet/servlet.FileDownload?file=<%- Attachments.records[0].Id %>">   
+                 
+    </div>
+        <div style="text-align:center">
+        <a href="" class="home button">Go to Home</a>       
+        </div>
+    </section>
+    </div>    
+    </script>
+    
+    <script type="text/template" id="noRoom">
+        <h2>No room available</h2>
+        <div class="bleed">   
+             <section class="bookedRoom">                 
+         <div style="text-align:center">
+             <a href="" class="edit button">Edit Search</a>       
+        </div>
+              </section>
+        </div>
+    </script>
+    </div>
+</body>
+</apex:page>

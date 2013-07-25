@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionOverrides>
+        <actionName>Accept</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>Clone</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>Delete</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>Edit</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>List</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>New</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>Tab</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Springboards are the action hooks for separate functions (Visualforce) features that get &apos;pulled&apos; into the mobile demo app</description>
+    <enableActivities>false</enableActivities>
+    <enableFeeds>false</enableFeeds>
+    <enableHistory>false</enableHistory>
+    <enableReports>false</enableReports>
+    <fields>
+        <fullName>Action_Name__c</fullName>
+        <description>The name of the action that will appear on the rendered button</description>
+        <externalId>false</externalId>
+        <inlineHelpText>The name of the action that will appear on the rendered button</inlineHelpText>
+        <label>Action Name</label>
+        <length>100</length>
+        <required>true</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>Button_Icon__c</fullName>
+        <externalId>false</externalId>
+        <label>Button Icon</label>
+        <length>32768</length>
+        <type>Html</type>
+        <visibleLines>25</visibleLines>
+    </fields>
+    <fields>
+        <fullName>Full_URL__c</fullName>
+        <description>full url starting with http</description>
+        <externalId>false</externalId>
+        <label>Full URL</label>
+        <length>255</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>Requires_Login__c</fullName>
+        <defaultValue>true</defaultValue>
+        <description>Denotes whether app needs login to access. Can be used to enable/disable rendered button</description>
+        <externalId>false</externalId>
+        <inlineHelpText>Denotes whether app needs login to access. Can be used to enable/disable rendered button</inlineHelpText>
+        <label>Requires Login</label>
+        <type>Checkbox</type>
+    </fields>
+    <fields>
+        <fullName>Visualforce_Page_Name__c</fullName>
+        <description>The visualforce page that will form the link from the button that gets clicked. Don&apos;t use any slashes.</description>
+        <externalId>false</externalId>
+        <inlineHelpText>The visualforce page that will form the link from the button that gets clicked. Don&apos;t use any slashes.</inlineHelpText>
+        <label>Visualforce Page Name</label>
+        <length>100</length>
+        <required>false</required>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <label>Springboard</label>
+    <listViews>
+        <fullName>All</fullName>
+        <columns>NAME</columns>
+        <columns>Action_Name__c</columns>
+        <columns>Visualforce_Page_Name__c</columns>
+        <columns>Requires_Login__c</columns>
+        <columns>Full_URL__c</columns>
+        <filterScope>Everything</filterScope>
+        <label>All</label>
+    </listViews>
+    <nameField>
+        <displayFormat>SB-{0000}</displayFormat>
+        <label>Springboard Id</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>Springboards</pluralLabel>
+    <searchLayouts/>
+    <sharingModel>ReadWrite</sharingModel>
+</CustomObject>

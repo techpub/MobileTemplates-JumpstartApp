@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionOverrides>
+        <actionName>Accept</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>Clone</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>Delete</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>Edit</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>List</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>New</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>Tab</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <actionOverrides>
+        <actionName>View</actionName>
+        <type>Default</type>
+    </actionOverrides>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <enableActivities>false</enableActivities>
+    <enableFeeds>true</enableFeeds>
+    <enableHistory>false</enableHistory>
+    <enableReports>false</enableReports>
+    <fields>
+        <fullName>Shipper__c</fullName>
+        <externalId>false</externalId>
+        <label>Shipper</label>
+        <length>200</length>
+        <required>true</required>
+        <trackFeedHistory>false</trackFeedHistory>
+        <type>Text</type>
+        <unique>false</unique>
+    </fields>
+    <fields>
+        <fullName>Signed__c</fullName>
+        <defaultValue>false</defaultValue>
+        <externalId>false</externalId>
+        <inlineHelpText>Gets updated by docusign after signing. Note: Once singed, you can unselect to do the docusign process again, but you wont be prompted to redraw your signature. If you want that, create a new package for signing</inlineHelpText>
+        <label>Signed</label>
+        <trackFeedHistory>false</trackFeedHistory>
+        <type>Checkbox</type>
+    </fields>
+    <label>Package</label>
+    <listViews>
+        <fullName>All</fullName>
+        <columns>Shipper__c</columns>
+        <columns>Signed__c</columns>
+        <filterScope>Everything</filterScope>
+        <label>All</label>
+    </listViews>
+    <nameField>
+        <displayFormat>P-{0000}</displayFormat>
+        <label>Package Id</label>
+        <trackFeedHistory>false</trackFeedHistory>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>Packages</pluralLabel>
+    <searchLayouts/>
+    <sharingModel>ReadWrite</sharingModel>
+    <webLinks>
+        <fullName>Sign_with_DocuSign</fullName>
+        <availability>online</availability>
+        <displayType>button</displayType>
+        <linkType>javascript</linkType>
+        <masterLabel>Sign with DocuSign</masterLabel>
+        <openType>onClickJavaScript</openType>
+        <protected>false</protected>
+        <url>var async = require(&quot;async&quot;)
+  , request = require(&apos;request&apos;)
+  , spawn = require(&quot;child_process&quot;).spawn
+  , templateId = &quot;1902275F-9236-435D-9052-7577951FA180&quot;
+  , templateRoleName = &quot;Signer1&quot;
+  , userName = &quot;ergin.dervisoglu@docusign.com&quot;
+  , userPassword = &quot;DocuSign2@&quot;
+  , integratorKey = &quot;DOCU-c42ad632-f7a9-4b66-9a0b-d725f77511ba&quot;
+  , baseUrl = &apos;&apos;
+  , dsAuthHeader =  [ &quot;&lt;DocuSignCredentials&gt;&lt;Username&gt;&quot;
+                      , userName
+                      , &quot;&lt;/Username&gt;&lt;Password&gt;&quot;
+                      , userPassword
+                      , &quot;&lt;/Password&gt;&lt;IntegratorKey&gt;&quot;
+                      , integratorKey
+                      , &quot;&lt;/IntegratorKey&gt;&lt;/DocuSignCredentials&gt;&quot;
+                    ].join(&apos;&apos;);
+
+async.waterfall(
+  [
+    //
+    // 1. Login
+    //
+    function(next) {
+      var options = {
+            &quot;method&quot;: &quot;GET&quot;
+            , &quot;headers&quot;: {
+              &quot;X-DocuSign-Authentication&quot;: dsAuthHeader
+              , &quot;content-type&quot;: &quot;application/json&quot;
+              , &quot;accept&quot;: &quot;application/json&quot;
+            }
+            , &quot;uri&quot;: &quot;https://demo.docusign.net/restapi/v2/login_information&quot;
+          };
+
+      request(options, function(err, res, body) {
+        console.log(&quot;Login Result: \r\n&quot;, JSON.parse(body))
+        baseUrl = JSON.parse(body).loginAccounts[0].baseUrl;
+
+        next(null);
+      });
+
+    }
+
+    //
+    // 2. Request Signature From Template
+    //
+    , function(next) {
+      var uri  = baseUrl + &quot;/envelopes&quot;
+        , options = {
+            &quot;method&quot;: &quot;POST&quot;
+            , &quot;headers&quot;: {
+                &quot;X-DocuSign-Authentication&quot;: dsAuthHeader
+                , &quot;content-type&quot;: &quot;application/json&quot;
+                , &quot;accept&quot;: &quot;application/json&quot;
+              }
+            , &quot;uri&quot;: uri
+            , &quot;body&quot; : JSON.stringify({
+              &quot;emailSubject&quot;: &quot;Salesforce + DocuSign demo&quot;
+              , &quot;templateId&quot;: templateId
+              , &quot;templateRoles&quot;: [{
+                  &quot;email&quot;: &quot;johndoe@email.com&quot;
+                  , &quot;name&quot;: &quot;John Doe&quot;
+                  , &quot;roleName&quot;: templateRoleName
+                  , &quot;clientUserId&quot;: 1
+                }]
+              ,&quot;status&quot;: &quot;sent&quot;
+            })
+          };  
+
+      request(options, function(err, res, body) {
+        console.log(&quot;Request Envelope Result: \r\n&quot;, JSON.parse(body));
+        next(null, body);
+      })
+    }
+
+    //
+    // 3. Get Send View
+    //
+    , function(body, next) {
+        var envelopeUri = JSON.parse(body).uri
+          , options = {
+              &quot;method&quot;: &quot;POST&quot;
+              , &quot;headers&quot;: {
+                &quot;X-DocuSign-Authentication&quot;: dsAuthHeader
+                , &quot;content-type&quot;: &quot;application/json&quot;
+                , &quot;accept&quot;: &quot;application/json&quot;
+              }
+              , &quot;uri&quot;: baseUrl + envelopeUri + &quot;/views/recipient&quot;
+              , &quot;body&quot;: JSON.stringify({
+                  &quot;authenticationMethod&quot;: &quot;email&quot;,
+                  &quot;email&quot;: &quot;johndoe@email.com&quot;,
+                  &quot;returnUrl&quot;: &quot;https://c.na15.visual.force.com/apex/DocusignEnd &quot;,
+                  &quot;userName&quot;: &quot;John Doe&quot;,
+                  &quot;clientUserId&quot;: &quot;1&quot;
+                })
+            };
+
+        request(options, function(err, res, body) {
+          console.log(&quot;Get Embedded View: \r\n&quot;, JSON.parse(body));
+          spawn(&quot;open&quot;, [JSON.parse(body).url])
+        });
+    }
+  ]
+);</url>
+    </webLinks>
+</CustomObject>

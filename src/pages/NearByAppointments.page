@@ -1,0 +1,290 @@
+<apex:page doctype="html-5.0" standardstylesheets="false" showheader="false" sidebar="false"> 
+   
+   <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+       <meta name="viewport" content="width=device-width, initial-scale=1,  minimum-scale=1, maximum-scale=1"/>
+   <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/styles.css')}"/>
+   <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, 'js/jquery.js')}"/>       
+   <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, 'js/jquery.mobile-1.3.1.min.js')}"/>
+    <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/jquery.mobile-1.3.1.min.css')}"/>
+ <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/underscore-min.js')}" />
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.js')}" />
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/forcetk.js')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.force.js')}"/>
+<!--script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false"></script--> 
+     
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false&key=AIzaSyDGWhV1-34hqgx2qmO37fddC1riu4yvVIU"></script> 
+ 
+        <div class="wrapper innerPage">
+    <section class="topBar">
+        <a id="main-menu-button-left" class="backButton"></a> 
+        <h1>Appointment</h1>       
+        <a id="main-menu-button-right" class="homeLink"></a>
+    </section>
+            <h2>Nearby Appointments</h2>
+        <div id="content"></div>
+    <script type="text/template" id="appointment-template">
+            
+            <div class="bleed">    
+            <section class="inspectionReport">      
+                <div class="currentLocation">
+                    <h3>Use Current Location</h3>
+                   <select name="UseCurrentLocation" id="UseCurrentLocation" data-role="slider">
+                    <option value="off">Off</option>
+                    <option value="on" selected="selected">On</option>
+                   </select>
+                </div>
+                <div class="or">-or-</div>
+                <form method="post" id="address">
+                    <h3>Enter Address</h3>
+                    <input type="text" id="Street" placeholder="Street"/>
+                    <input type="text" id="City" placeholder="City"/>
+                    <input type="text" id="State" placeholder="State"/>
+                    <input type="text" id="Zip" placeholder="Zip"/>
+                </form>        
+                <a href="#" id="Next" class="button">Next</a>
+            </section>
+            </div>    
+        </script>
+         <script type="text/template" id="appointment-map-template">
+         
+    <section class="map" style="margin-top:-10px;border-top: 1px solid #78A5AD;">
+       
+        <div id="map_canvas" style="width:100%;height:600px"></div>
+        </section>
+            
+          <% print  ("<sc" + "ript type='text/javascript'>"); %> 
+              function getUrlVars() {                  
+                  var vars = {};
+                  var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
+                      vars[key] = value;                      
+                  });
+                  return vars;
+                }
+              
+              var currentLat = getUrlVars()["lat"];
+              var currentLong = getUrlVars()["long"];
+     
+             var map = new google.maps.Map(document.getElementById("map_canvas"),
+                {
+                    center: new google.maps.LatLng(parseFloat(currentLat), parseFloat(currentLong)), zoom: 10
+
+                }); 
+               google.maps.event.trigger(map, 'resize');
+             var currentLocationMarker = new google.maps.Marker({
+                        position: new google.maps.LatLng(parseFloat(currentLat), parseFloat(currentLong)),
+                        map: map,
+                        icon:'{!URLFOR($Resource.TDM_Resources, 'images/gpsloc.png')}'
+                    });
+    
+            google.maps.event.addListener(currentLocationMarker, 'click', toggleBounce);
+
+                function toggleBounce() {                
+                  if (currentLocationMarker.getAnimation() != null) {
+                    currentLocationMarker.setAnimation(null);
+                  } else {
+                    currentLocationMarker.setAnimation(google.maps.Animation.BOUNCE);
+                  }
+                }
+
+infowindow = new google.maps.InfoWindow();        
+ 
+                <% _(locations).each(function(loc) { %>
+                
+                    var marker = new google.maps.Marker({
+                        position: new google.maps.LatLng(parseFloat(<%- loc.Service_Address_Geo__Latitude__s %>), parseFloat(<%- loc.Service_Address_Geo__Longitude__s %>)),
+                        map: map
+                    });                                                    
+                                                     
+                    google.maps.event.addListener(marker, 'click', function () {
+                        var content = '';
+                        <% if (loc.Contact_Name__r != null) {%>
+                        content = content + "<div style='width:200px'><b><%- loc.Contact_Name__r.Name %></b> <br/>"
+                            <% } %>
+                        content = content + "<%- loc.Street_Address__c%><br/><%- loc.City_Address__c%>,<%- loc.State_Address__c%> - <%- loc.Zip_Address__c%>"
+                        <% if (loc.Problem_Description__c !== null) { %>
+                            content = content + "<br/><br/><i><%- loc.Problem_Description__c%><i>";
+                        <% } %>
+                            
+                            content =  content + "</div>";
+                        infowindow.setContent(content);
+                        infowindow.open(map, this);
+                    });
+
+
+                <% }); %>
+ 				
+  
+           <% print("</sc"+"ript>"); %>
+              
+             </script>
+</div>
+
+      <script type="text/javascript">
+                
+          (function () {
+              var client = new forcetk.Client();               
+              client.setSessionToken('{!$Api.Session_ID}');
+              client.proxyUrl = null;
+              client.instanceUrl = '';
+              client.apiVersion = 'v27.0';
+              var currUserId = '{!$User.Id}';
+
+              $(document).ready(function () {
+                  nearByAppointments();
+                  $("#main-menu-button-left").click(function () {
+                      if(window.location.hash) {
+                        var hash = window.location.hash.substring(1);                    
+                       if(hash.indexOf('NearByAppointments') === 0){
+                         window.history.back();       
+                       }else{
+                        window.location.href = "/DemoApp/apex/apppages" + location.search;
+                       }
+                          }
+                  });
+                   $("#main-menu-button-right").click(function () {
+                      window.location.href = "/DemoApp/apex/apppages" + location.search;
+                  });
+              });
+
+              function nearByAppointments() {
+                  Backbone.Force.initialize(client);
+                  var tdm = {};
+
+                  //Model
+                  tdm.Appointment = Backbone.Force.Model.extend({
+                      type: "Appointment__c",
+                      fields: ['Id', 'Name', 'Street_Address__c', 'City_Address__c', 'State_Address__c', 'Zip_Address__c', 'Contact_Name__r.Name', 'VIP__c', 'Problem_Description__c', 'Service_Address_Geo__Latitude__s', 'status__c', 'Service_Address_Geo__Longitude__s', 'Requested_Appointment_Date__c', 'Requested_Appointment_Time_Hour__c']
+                  });
+
+                  tdm.AppointmentsCollection = Backbone.Force.Collection.extend({
+                      model: tdm.Appointment,
+                      query: ""
+                  }),
+
+                   tdm.AppointmentView = Backbone.View.extend({
+                       tagName: 'div',
+                       template: _.template($('#appointment-template').html()),
+                       render: function () {
+                           this.$el.html(this.template(this.model.toJSON()));
+                           return this; // enable chained calls
+                       },
+                       events: {
+                           'click #Next': 'submit',
+                           "keydown #Street": "turnOffCurrentLocation",
+                           "keydown #City": "turnOffCurrentLocation",
+                           "keydown #State": "turnOffCurrentLocation",
+                           "keydown #Zip": "turnOffCurrentLocation",
+                       },
+                       turnOffCurrentLocation: function (e) {
+                           if ($("#UseCurrentLocation").val() === 'on') {
+                               $("#UseCurrentLocation").val('off');
+                               $("#UseCurrentLocation").slider('refresh');
+                           }
+                       },
+                       submit: function (e) {
+                           e.preventDefault();
+                           var _this = this;
+                           var onSuccess = function (position) {
+                               _this.showMap(position.coords.latitude, position.coords.longitude);
+                           }
+
+                           function localGeoError(error) {
+                               switch (error.code) {
+                                   case error.PERMISSION_DENIED:
+                                       alert('User denied the request for Geolocation.');
+                                       break;
+                                   case error.POSITION_UNAVAILABLE:
+                                       alert('Location information is unavailable.');
+                                       break;
+                                   case error.TIMEOUT:
+                                       alert('The request to get user location timed out.');
+                                       break;
+                                   case error.UNKNOWN_ERROR:
+                                       alert('An unknown error occurred.');
+                                       break;
+                               }
+                           }
+
+                           if (this.useCurrentLocation()) {
+                               if ("geolocation" in navigator) {
+                                   navigator.geolocation.getCurrentPosition(onSuccess, localGeoError);
+                               }
+                           } else {
+                               var address = this.getFormattedAddress();
+                               this.codeAddress(address);
+                           }
+                       },
+                       codeAddress: function (inputAddress) {
+                           var _this = this;
+                           var geocoder = new google.maps.Geocoder();
+                           var address = inputAddress;
+                           geocoder.geocode({ 'address': address }, function (results, status) {
+                               if (status == google.maps.GeocoderStatus.OK) {
+                                   var locInfo = results[0].geometry.location;
+                                   _this.showMap(locInfo.lat(), locInfo.lng());
+                               } else {
+                                   alert("Location information is unavailable: " + status);
+                               }
+                           });
+                       },
+                       getFormattedAddress: function () {
+                           return $('#Street').val().trim() + ', ' + $('#City').val().trim() + ', ' + $('#State').val().trim() + ', ' + $('#Zip').val().trim();
+                       },
+                       showMap: function (lat, long) {
+                           tdm.router.navigate('NearByAppointments&lat=' + lat + '&long=' + long, { trigger: true });
+                       },
+                       useCurrentLocation: function () {
+                           return $("#UseCurrentLocation").val() === 'on';
+                       }
+                   });
+
+                  // renders Appointments on MAP
+                  tdm.AppointmentDetailView = Backbone.View.extend({
+                      template: _.template($('#appointment-map-template').html()),
+                      render: function () {
+                          this.$el.html(this.template({ locations: this.model.toJSON() }));
+                          return this; // enable chained calls
+                      }
+                  });
+
+
+                  tdm.Router = Backbone.Router.extend({
+                      routes: {
+                          "EnterYourLocation": "LoadForm",
+                          "NearByAppointments&lat=:lat&long=:long": "NearByAppointments"
+                      },
+                      LoadForm: function () {
+                          var appointmentModel = new tdm.Appointment({});
+                          var appointmentView = new tdm.AppointmentView({ model: appointmentModel });
+                          //Backbone.Validation.bind(ticketView);
+                          $("#content").html('');
+                          $("#content").html(appointmentView.render().el);
+                          $("#UseCurrentLocation").slider();
+                      },
+                      NearByAppointments: function (lat, long) {
+                          var qry = "WHERE DISTANCE(Service_Address_Geo__c, GEOLOCATION(" + lat + ", " + long + "), 'mi') < 20";
+                          var appointmentCollection = Backbone.Force.Collection.extend({ model: tdm.Appointment, query: qry });
+                          var appointments = new appointmentCollection();
+
+                          appointments.fetch({
+                              success: function (collection, response) {
+                                  var appointmentDetailView = new tdm.AppointmentDetailView({ model: collection });
+                                  $("#content").html('');
+                                  $("#content").html(appointmentDetailView.render().el);
+                              }
+                          });
+
+                      }
+                  });
+
+                  tdm.router = new tdm.Router();
+                  Backbone.history.start();
+                  tdm.router.navigate("EnterYourLocation", { trigger: true });
+                  return tdm;
+              }
+          })();
+          </script>
+           
+    
+</apex:page>

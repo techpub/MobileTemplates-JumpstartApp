@@ -1,0 +1,210 @@
+<apex:page docType="html-5.0" standardStylesheets="false" showHeader="false" sidebar="false">
+ 
+ <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1,  minimum-scale=1, maximum-scale=1"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+    
+ <apex:stylesheet value="{!URLFOR($Resource.resources, 'css/bootstrap.css')}"/> 
+  <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, 'js/jquery.js')}"/>
+ <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, 'styles/app.css')}"/>  
+   
+ 
+ <div id="app-wrapper">
+
+<nav id="main-menu" class="main-menu">
+<a href="#">Something</a>
+<a href="#">Something</a>
+<a href="#">Something</a>
+</nav><!--#main-menu-->
+
+<header>
+<div class="main-menu-button main-menu-button-left" id="main-menu-button-left"><a class="left-arrow"></a></div>
+<div style="float:right" class="main-menu-button main-menu-button-right" id="main-menu-button-right"><a class="home"></a></div>
+<h1>Contacts</h1>
+</header>
+<div id="app-content" class="contacts">
+  
+ <script type="text/html" id="myContact-template">
+  
+ <div class="list-view-header"> <%- contacts.key %></div>
+ <ul class="list-view left-thumbs right-one-icons">
+  <% _(contacts.values).each(function(contact) { %>
+    <li>
+        
+       
+            <div class="list-view-actions">
+                <% if (contact.MobilePhone != 'null'){ %> 
+                    <a href="tel:<%- contact.MobilePhone%>"><span class="action-phone">&nbsp;</span></a>
+                <% } %>
+                
+
+                <% if (contact.Email != 'null'){ %> 
+                    <a href="mailto:<%- contact.Email%>"><span class="action-email">&nbsp;</span></a>                  
+                 <% }   %>
+                
+            </div>
+         <a href="#" class="content">
+        
+             <% if (contact.Photo != ''){ %>
+                    <img class="thumb" src="http://cloudcable.force.com{!$Site.Prefix}/servlet/servlet.FileDownload?file=<%- contact.Photo%>" />   
+             <% }else { %> 
+                <img class="thumb" src="{!URLFOR($Resource.TDM_Resources, 'images/default_contact.png')}" />
+             <% } %>
+            
+            <h2><%- contact.Name %></h2>
+             <% if (contact.Title != 'null'){ %> 
+                <%- contact.Title %> 
+              <% } %>
+         
+        </a>
+    </li>   
+   <% }); %>
+  </ul> 
+
+ </script>
+</div><!--#app-content-->
+</div><!--#app-wrapper-->
+  
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/underscore-min.js')}" />
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.js')}" />
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/forcetk.js')}"/>
+  <apex:includeScript value="{!URLFOR($Resource.resources, 'lib/backbone.force.js')}"/>
+  <script type="text/javascript">
+  var clist;
+     
+      (function () {
+      
+       // When ready...
+            window.addEventListener("load",function() {
+            var CSS = document.documentElement.style;
+                // Set a timeout...
+                setTimeout(function(){
+                    // Hide the address bar!
+                   CSS.height = '200%';
+  CSS.overflow = 'visible';
+
+  window.scrollTo(0, 1);
+
+  CSS.height = window.innerHeight + 'px';
+  CSS.overflow = 'hidden';
+                }, 0);
+            });
+
+          var client = new forcetk.Client();
+          client.setSessionToken('{!$Api.Session_ID}');
+          client.proxyUrl = null;
+          client.instanceUrl = '';
+          
+          var currUserId = '{!$User.Id}';
+
+          $(document).ready(function () {
+              salesForceMyContacts();
+               $("#main-menu-button-left").click(function () {                   
+                       window.location.href = "/DemoApp/apex/apppages" + location.search;
+                  });
+                   $("#main-menu-button-right").click(function () {
+                      window.location.href = "/DemoApp/apex/apppages" + location.search;
+                  });
+          });
+
+          function salesForceMyContacts() {
+              Backbone.Force.initialize(client);
+              var TDM = {};
+
+              TDM.MyContact = Backbone.Force.Model.extend({
+                  type: "Contact",
+                  fields: ['Name', 'LastName', 'Title', 'MobilePhone', 'Email', 'Profile_Picture__c']
+              });
+
+              TDM.MyContacts = Backbone.Force.Collection.extend({
+                  query: "SELECT Name,LastName,Title,MobilePhone,Email,Profile_Picture__c,(select id from Attachments) FROM Contact WHERE AccountId = '001i000000CmOl1' ORDER BY LastName ASC NULLS FIRST"
+              });
+
+
+              TDM.MyContactView = Backbone.View.extend({                  
+                  template: _.template($('#myContact-template').html()),
+                  render: function () {
+                      $(this.el).append(this.template({ contacts: this.model }));
+                      return this;
+                  }
+              });
+
+              TDM.MyContactsView = Backbone.View.extend({
+                  render: function () {
+                      var contactView = this;
+                      var contactList = this.model.models;
+                      var a = 65;
+                      var alphabets = {};
+                      for (var i = 0; i < 26; i++)
+                          alphabets[i] = String.fromCharCode(a + i)
+
+                      _(alphabets).each(function (alphabet, idx) {
+
+                          obj = " { \"key\": \"" + alphabet + "\" , \"values\": [";
+                          var dataExists = false;
+
+                          for (var i = 0, l = contactList.length; i < l; i++) {
+                              if (contactList[i].attributes.LastName.toUpperCase().indexOf(alphabet) === 0) {
+                                  dataExists = true;
+
+                                  var src = '';
+                                  if (contactList[i].attributes.Attachments != null) {
+                                      //src = $(contactList[i].attributes.Attachments[0].Id).attr('src');
+                                      src = contactList[i].attributes.Attachments.records[0].Id;
+                                    }
+
+                                  obj += "{ \"Name\": \"" + contactList[i].attributes.Name + "\" , \"Title\": \"" + contactList[i].attributes.Title + "\" , \"MobilePhone\": \"" + contactList[i].attributes.MobilePhone + "\", \"Email\": \"" + contactList[i].attributes.Email + "\", \"Photo\": \"" + src + "\"}, ";
+
+                              }
+                          }
+
+                          if (dataExists) {
+                              obj = obj.substring(0, obj.lastIndexOf(","))
+
+                              obj += "]}";
+
+                              var contacts = JSON.parse(obj);
+
+                              contactView.renderOne(contacts);
+                          }
+
+                      });
+
+                        
+                      return this;
+                  },
+                  renderOne: function (contact) {
+                      var view = new TDM.MyContactView({ model: contact });
+                        this.$el.append(view.render().el);
+                     
+                  }
+
+              }); 
+
+              TDM.Router = Backbone.Router.extend({
+
+                  routes: {
+                      "": "LoadContacts"
+                  },
+                  LoadContacts: function () {
+                      var contactList = new TDM.MyContacts();
+                      contactList.fetch({
+                          success: function (collection, response) {
+                              var contactView = new TDM.MyContactsView({ model: collection });
+                              $("#app-content").append(contactView.render().el);                              
+
+                          },
+                          error: function (collection, response) {
+                             window.location.href = "/DemoApp/apex/Error";
+                          }
+                      });
+                  }
+              });
+              TDM.router = new TDM.Router();
+              Backbone.history.start();
+          }
+      })();
+  </script>
+ 
+</apex:page>

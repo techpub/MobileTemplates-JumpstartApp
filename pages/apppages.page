@@ -1,0 +1,366 @@
+<apex:page controller="DemoAppController" showHeader="false" sidebar="false" docType="html-5.0" standardstylesheets="false">
+    
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+
+    <apex:stylesheet value="{!URLFOR($Resource.TDM_Resources, '/styles/styles.css')}"/>
+    <apex:stylesheet value="{!URLFOR($Resource.swipeView, '/style.css')}"/>
+
+    <style>
+        .main {
+            position: absolute;
+            background-size:100%;
+            width: 100%;
+            min-height: 100%;
+        }
+
+        /*.appsActionTiles ul li:nth-child(even) {
+            margin-right: 0px;
+        }*/
+
+        .appsActionTiles ul li {
+            margin-right: 12px;
+            width: 46%;
+        }
+
+        @media (min-width: 321px)
+        {
+            .appsActionTiles ul li {
+            width: 22.5%;
+            }
+        }
+
+        .appsActionTiles {
+            margin-right: -10px;
+        }
+
+        .disabled {
+            background: #ddd;
+        }
+
+        .disabled span{
+            pointer-events: none;
+            cursor: default;
+            color: #6b849a;
+            text-shadow: 1px 1px #ffffff;
+        }
+
+        .paging ul li.active a {
+            background: url({!$Site.prefix}/resource/TDM_Resources/images/pagingDotActive.svg) no-repeat center;
+        }
+
+        html {
+            height: 114%;
+        }
+
+        #swipeview-masterpage-0, #swipeview-masterpage-1, #swipeview-masterpage-2 {
+            -webkit-overflow-scrolling: touch;
+            overflow: scroll !important;
+        }
+    </style>
+
+    <div id="wrapper" class="wrapper">
+        <section class="paging">
+            <ul id="nav">
+                <li>
+                    <a href="{!$Site.prefix}/apex/demoAppHome" class="homeIcon">
+                        <img src="{!$Site.prefix}/resource/TDM_Resources/images/sliderHomeIcon.png"/>
+                    </a>
+                </li>
+            </ul>
+        </section>
+    </div>
+
+    <apex:includeScript value="{!URLFOR($Resource.TDM_Resources, '/js/jquery.js')}"/>
+    <apex:includeScript value="{!URLFOR($Resource.swipeView, '/swipeview.js')}"/>
+
+    <script type="text/javascript">
+        var slides;
+
+        $(document).ready(function() {
+            getAppPages();
+            hideURLBar();
+            window.onorientationchange = function() {
+                hideURLBar();
+            }
+        });
+
+        function scrollStuff() {
+            $("#swipeview-masterpage-0,#swipeview-masterpage-1,#swipeview-masterpage-2").each(function(){
+                $(this).addClass("swipeviewPanel");
+            });
+
+            //uses document because document will be topmost level in bubbling
+            $(document).on('touchmove',function(e){
+              // e.preventDefault();
+            });
+            //uses body because jquery on events are called off of the element they are
+            //added to, so bubbling would not work if we used document instead.
+            $('body').on('touchstart','.swipeviewPanel',function(e) {
+              if (e.currentTarget.scrollTop === 0) {
+                e.currentTarget.scrollTop = 1;
+              } else if (e.currentTarget.scrollHeight === e.currentTarget.scrollTop + e.currentTarget.offsetHeight) {
+                e.currentTarget.scrollTop -= 1;
+              }
+            });
+            //prevents preventDefault from being called on document if it sees a scrollable div
+            // $('body').on('touchmove','.swipeviewPanel',function(e) {
+            //   e.stopPropagation();
+            // });
+        }
+
+        function hideURLBar() {
+            if (window.orientation === 90 || window.orientation === -90) {
+                $("html").css("height", "129%");
+            } else {
+                $("html").css("height", "114%");
+            }
+
+            var CSS = document.documentElement.style;
+            // Set a timeout...
+            setTimeout(function(){
+                // Hide the address bar!
+               // CSS.height = '200%';
+               // CSS.overflow = 'visible';
+
+                window.scrollTo(0, 1);
+
+                //CSS.height = window.innerHeight + 'px';
+            }, 0);
+        }
+
+        function getCookies() {
+            var c = document.cookie, v = 0, cookies = {};
+            if (document.cookie.match(/^\s*\$Version=(?:"1"|1);\s*(.*)/)) {
+                c = RegExp.$1;
+                v = 1;
+            }
+            if (v === 0) {
+                c.split(/[,;]/).map(function(cookie) {
+                    var parts = cookie.split(/=/, 2),
+                        name = decodeURIComponent(parts[0].trimLeft()),
+                        value = parts.length > 1 ? decodeURIComponent(parts[1].trimRight()) : null;
+                    cookies[name] = value;
+                });
+            } else {
+                c.match(/(?:^|\s+)([!#$%&'*+\-.0-9A-Z^`a-z|~]+)=([!#$%&'*+\-.0-9A-Z^`a-z|~]*|"(?:[\x20-\x7E\x80\xFF]|\\[\x00-\x7F])*")(?=\s*[,;]|$)/g).map(function($0, $1) {
+                    var name = $0,
+                        value = $1.charAt(0) === '"'
+                                  ? $1.substr(1, -1).replace(/\\(.)/g, "$1")
+                                  : $1;
+                    cookies[name] = value;
+                });
+            }
+            return cookies;
+        }
+        function getCookie(name) {
+            return getCookies()[name];
+        }
+
+        function getURLParameter(name) {
+            return decodeURI(
+                (RegExp(name + '=' + '(.+?)(&|$)').exec(location.search)||[,null])[1]
+            );
+        }
+
+        function getAppPages() {
+            var pageId = getURLParameter('id');
+            var currentSlide;
+
+            Visualforce.remoting.Manager.invokeAction(
+                '{!$RemoteAction.DemoAppController.getAppPages}',
+                'a0Ci0000001Y3qF',
+                function(result, event){
+                    if (event.status) {
+                        slides = result;
+                        // console.log(slides);
+                    }
+                    initializeSlides();
+                    setNavBar();
+                    goToCurrentPage();
+                    scrollStuff();
+                }, 
+                {escape: true}
+            );
+        }
+
+        /* initialize slide values for beginning panels */
+        function initializeSlides() {
+            gallery = new SwipeView('#wrapper', { numberOfPages: slides.length });
+            var title, button, iconId, backgroundId, iconElem;
+
+            for (i=0; i<3; i++) {
+                page = i==0 ? slides.length-1 : i-1;
+
+
+                // set icon
+                iconId = getImageId("icon", slides[page].appPage.Attachments);
+                if (iconId) {
+                    iconElem = $("<img></img>").addClass("appsIcon").attr("src", "{!$Site.Prefix}/servlet/servlet.FileDownload?file="+iconId);
+                } else {
+                    iconElem = $("<img></img>").addClass("appsIcon");
+                }
+
+                // header
+                var appsHeader = $("<div></div").addClass("appsHeader")
+                                    .append(iconElem)
+                                    .append($("<h2></h2>").html(slides[page].appPage.Title__c));
+
+                // description
+                var appsDesc = $("<div></div").addClass("appsDesc")
+                                    .append($("<p></p>").html(slides[page].appPage.Description__c));
+
+                var appsActionTiles = $("<div></div").addClass("appsActionTiles")
+                                    .append(addSpringboards(slides[page]));
+
+                var bleed = $("<div></div").addClass("bleed")
+                                    .append(appsHeader)
+                                    .append(appsDesc)
+                                    .append(appsActionTiles);
+
+                backgroundId = getImageId("background", slides[page].appPage.Attachments);
+
+                if (backgroundId) {
+                    main = $("<section></section").addClass("main").css("background", "url({!$Site.Prefix}/servlet/servlet.FileDownload?file="+backgroundId+")")
+                        .append(bleed);
+                } else {
+                    main = $("<section></section").addClass("main").append(bleed);
+                }
+                
+                $(gallery.masterPages[i])
+                    .append(main);
+
+                // platform logo
+                $(gallery.masterPages[i]).append($("<div></div>").addClass("platFormLogo"));
+            }
+
+            /* update panels on slide change */
+            gallery.onFlip(function () {
+                var el, bleed, iconId, backgroundId, upcoming, i;
+
+                for (i=0; i<3; i++) {
+                    upcoming = gallery.masterPages[i].dataset.upcomingPageIndex;
+                    if (upcoming != gallery.masterPages[i].dataset.pageIndex) {
+                        el = $(gallery.masterPages[i]).children(".main");
+                        bleed = el.children(".bleed");
+
+                        // set background
+                        backgroundId = getImageId("background", slides[upcoming].appPage.Attachments);
+                        if (backgroundId) {
+                            console.log('in background');
+                            el.css("background", "url({!$Site.Prefix}/servlet/servlet.FileDownload?file="+backgroundId+")");
+                        } else {
+                            el.css("background", "none");
+                        }
+
+                        // set icon
+                        iconId = getImageId("icon", slides[upcoming].appPage.Attachments);
+                        if (iconId) {
+                            bleed.children(".appsHeader").children(".appsIcon").attr("src", "{!$Site.Prefix}/servlet/servlet.FileDownload?file="+iconId);
+                        } else {
+                            el.children(".appsIcon").attr("src", "");
+                        }
+
+                        // set title
+                        bleed.children(".appsHeader").children("h2").html(slides[upcoming].appPage.Title__c);
+
+                        // set description
+                        bleed.children(".appsDesc").children("p").html(slides[upcoming].appPage.Description__c);
+
+                        // set springboards
+                        bleed.children(".appsActionTiles").empty();
+                        bleed.children(".appsActionTiles").append(addSpringboards(slides[upcoming]));
+                    }
+                }
+
+                document.querySelector('#nav .active').className = '';
+                dots[gallery.pageIndex+1].className = 'active';
+            });
+        }
+
+        function addSpringboards(slide) {
+            var span, img, a, rtf, elem, url
+            boards = slide.springboards,
+            sId = getCookie('sid'),     // session cookie
+            list = $("<ul></ul>");
+
+            for (var i = 0; i<boards.length; i++) {
+                // create img element
+                if(boards[i].Attachments) {
+                    img = $("<img></img>").addClass("tileIcon").attr("src", "{!$Site.Prefix}/servlet/servlet.FileDownload?file="+boards[i].Attachments[0].Id);
+                }
+
+                // create title span
+                span = $("<span></span>").addClass("tileText").html(boards[i].Action_Name__c);
+
+                // create anchor
+                if (boards[i].Requires_Login__c && !sId) {
+                    a = $("<a></a>").addClass("tileAnchor").addClass("disabled").attr("href", "#").append(span).append(img);
+                } else {
+                    if (boards[i].Visualforce_Page_Name__c) {
+                        url = "{!$Site.prefix}/apex/"+boards[i].Visualforce_Page_Name__c;
+                    } else {
+                        url = boards[i].Full_URL__c;
+                    }
+                    url = url.replace("$PAGEID", slide.appPage.Id);
+                    url = url.replace("amp;", "");
+                    
+                    //a = $("<a></a>").addClass("tileAnchor").attr("href", "#").attr("onclick", "javascript:navigate('"+url+"','slidedown')").append(span).append(img);
+                    a = $("<a></a>").addClass("tileAnchor").attr("href", url).append(span).append(img);
+
+                    // set tile background color
+                    if (slide.appPage.Background_Color__c)
+                        a.css("background", slide.appPage.Background_Color__c); 
+                }
+                
+                // attach
+                list.append($("<li></li>")
+                                .append(a));
+            }
+
+            return list;
+        }
+
+        function getImageId(type, attch) {
+            // find background and icon attachments
+            if (attch) {
+                for (var j = 0; j < attch.length; j++) {
+                    if (attch[j].Name.indexOf(type) != -1) {
+                        return attch[j].Id;
+                    } 
+                }
+            }
+
+            return null;
+        }
+
+        /* add dots to nav bar for each showcase */
+        function setNavBar() {
+            var length = slides.length;
+            var dot;
+
+            for (var i = 0; i < length; i++) {
+                dot = $("<li></li>").append($("<a></a>)").attr("onclick", "gallery.goToPage("+i+")"));
+                $("#nav").append(dot);
+                
+                if (i == 0) {
+                    dot.addClass("active");
+                }
+            }
+            dots = document.querySelectorAll('#nav li');
+        }
+
+        function goToCurrentPage() {
+            id = getURLParameter('id');
+
+            for (var i=0; i<slides.length;i++) {
+                if (slides[i].appPage.Id == id) {
+                    $("#nav li:nth-child("+(i+2)+")").children("a").click();
+                    break;
+                }
+            }
+        }
+    </script>
+</apex:page>
