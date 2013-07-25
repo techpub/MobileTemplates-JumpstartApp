@@ -1,0 +1,255 @@
+<apex:page standardController="DemoApp__c" extensions="MobileDemoAppController" showHeader="false" sidebar="false" docType="html-5.0" standardstylesheets="false">
+	
+	<meta charset="utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
+	<meta name="apple-mobile-web-app-capable" content="yes"/>
+	<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+
+	<apex:stylesheet value="{!URLFOR($Resource.resources, '/css/bootstrap.min.css')}"/>
+	<apex:stylesheet value="{!URLFOR($Resource.swipeView, '/swipeView/style.css')}"/>
+
+	<style>
+		.title {
+			font-size: 20px;
+			text-align: center;
+			text-shadow: 0 1px 0 #000;
+			margin-bottom: 20px;
+		}
+
+		.item img {
+			margin: 0 auto;
+		}
+
+		.item {
+			min-width: 330px;
+			min-height: 250px;
+		}
+
+		#nav {
+			margin: 0 0 0 -75px;
+		}
+
+		.btn {
+			margin: 0 auto;
+			display: block;
+		}
+
+		.carousel {
+			margin-bottom: 0px;
+		}
+	</style>
+
+	<div id="wrapper"></div>
+	<ul id="nav">
+		<li id="prev" onclick="gallery.prev()">-</li>
+	</ul>
+
+	<apex:includeScript value="{!URLFOR($Resource.resources, '/lib/jquery.min.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.resources, '/lib/bootstrap.min.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.swipeView, '/swipeView/swipeview.js')}"/>
+
+	<script type="text/javascript">
+		var	gallery, el, i, page, dots,
+			slides = [];
+
+		$(document).ready(function() {
+			document.addEventListener('touchmove', function (e) { e.preventDefault(); }, false);
+			getShowcases();
+			getAppPages();
+		});
+
+		function getAppPages() {
+			Visualforce.remoting.Manager.invokeAction(
+	            '{!$RemoteAction.MobileDemoAppController.getAppPages}',
+	            'a0Ci0000001Y3qF',
+	            function(result, event){
+	                if (event.status) {
+	                	var length = result.length;
+	                	var img = [];
+	                	var dot;
+	                	for (var i=0; i<length; i++) {
+			                slides.push(
+			                	{
+									title: result[i].appPage.Title__c,
+									sbs: result[i].springboards,
+									desc: result[i].appPage.Description__c,
+									type: 'appPage'
+								}
+			                );
+		                }
+		            }
+		            initializeSlides();
+		            setNavBar();
+	            }, 
+	            {escape: true}
+	        );
+		}
+		
+		function getShowcases() {
+			Visualforce.remoting.Manager.invokeAction(
+	            '{!$RemoteAction.MobileDemoAppController.getShowcases}',
+	            'a0Ci0000001Y3qF',
+	            function(result, event){
+	                if (event.status) {
+	                	var length = result.length;
+	                	var img = [];
+	                	for (var i=0; i<length; i++) {
+	                		if (result[i].Use_Case_Description__c == null) {
+	                			result[i].Use_Case_Description__c = '';
+	                		}
+			                slides.push(
+			                	{
+									title: result[i].Customer_Name__c,
+									img: result[i].Attachments,
+									desc: result[i].Use_Case_Description__c,
+									type: 'showcase'
+								}
+			                );
+		                }
+		            }
+	            }, 
+	            {escape: true}
+	        );
+		}
+
+		/* add dots to nav bar for each showcase */
+        function setNavBar() {
+        	var nav = document.getElementById("nav");
+        	var length = slides.length;
+        	var dot;
+
+        	for (var i = 0; i < length; i++) {
+				dot = document.createElement('li');
+				dot.setAttribute("onclick", "gallery.goToPage("+i+")");
+        		nav.appendChild(dot);
+
+        		if (i == 0) dot.className = 'selected';
+
+        		if (i == length-1) {
+	        		var plus = document.createElement('li');
+	        		plus.setAttribute("id", "next");
+	        		plus.setAttribute("onclick", "gallery.next()");
+	        		plus.innerHTML = "+";
+	        		nav.appendChild(plus);
+	        	}
+
+        	}
+        	dots = document.querySelectorAll('#nav li');
+        }
+
+        /* initialize slide values for beginning panels */
+		function initializeSlides() {
+			gallery = new SwipeView('#wrapper', { numberOfPages: slides.length });
+			var images, carInner, carItem, navLeft, navRight, imgTag;
+
+	        for (i=0; i<3; i++) {
+				page = i==0 ? slides.length-1 : i-1;
+				el = document.createElement('h5');
+				el.className = 'title';
+				el.innerHTML = slides[page].title;
+				gallery.masterPages[i].appendChild(el);
+
+				el = document.createElement('div');
+				images = slides[page].img;
+				addCarousel(i, images, el);
+				gallery.masterPages[i].appendChild(el);
+
+				el = document.createElement('span');
+				el.innerHTML = slides[page].desc;
+				gallery.masterPages[i].appendChild(el);
+			}
+
+			function addCarousel(i, images, wrap) {
+				wrap.innerHTML = '';
+				if (images != null) {
+					var elem = document.createElement('div');
+					elem.className = 'carousel slide';
+					elem.setAttribute('id', 'carousel'+i);
+					carInner = document.createElement('div');
+					carInner.className = 'carousel-inner';
+					elem.appendChild(carInner);
+
+					for (var j = 0; j < images.length; j++) {
+						carItem = document.createElement('div');
+						if (j == 0)
+							carItem.className = 'active item';
+						else
+							carItem.className = 'item';
+						imgTag = document.createElement('img');
+						imgTag.setAttribute('src', '/servlet/servlet.FileDownload?file='+images[j].Id);
+						carItem.appendChild(imgTag);
+						carInner.appendChild(carItem);
+					}
+
+					navLeft = document.createElement('a');
+					navLeft.className = 'carousel-control left';
+					navLeft.setAttribute('href', '#carousel'+i);
+					navLeft.setAttribute('data-slide', 'prev');
+					navLeft.innerHTML = '&lsaquo;';
+					elem.appendChild(navLeft);
+
+					navRight = document.createElement('a');
+					navRight.className = 'carousel-control right';
+					navRight.setAttribute('href', '#carousel'+i);
+					navRight.setAttribute('data-slide', 'next');
+					navRight.innerHTML = '&rsaquo;';
+					elem.appendChild(navRight);
+					wrap.appendChild(elem);
+				}
+
+				var button = document.createElement('button');
+				button.className = 'btn btn-primary';
+				button.innerHTML = 'Learn More';
+				wrap.appendChild(button);
+			}
+
+			function addSpringboards(div, boards, wrap) {
+				wrap.innerHTML = '';
+				var ul = document.createElement('ul');
+				var li, a;
+
+				for (var j = 0; j < boards.length; j++) {
+					li = document.createElement('li');
+					a = document.createElement('a');
+					a.innerHTML = boards[j].Springboard__r.Action_Name__c;
+					a.setAttribute('href', '/apex/'+boards[j].Springboard__r.Visualforce_Page_Name__c);
+					li.appendChild(a);
+					ul.appendChild(li);
+				}
+
+				wrap.appendChild(ul);
+			}
+
+			gallery.onFlip(function () {
+				var el,
+					upcoming,
+					i;
+
+				for (i=0; i<3; i++) {
+					upcoming = gallery.masterPages[i].dataset.upcomingPageIndex;
+
+					if (upcoming != gallery.masterPages[i].dataset.pageIndex) {
+						el = gallery.masterPages[i].querySelector('h5');
+						el.innerHTML = slides[upcoming].title;
+
+						if (slides[upcoming].type == 'showcase') {
+							el = gallery.masterPages[i].querySelector('div');
+							addCarousel(i, slides[upcoming].img, el);
+						} else {
+							el = gallery.masterPages[i].querySelector('div');
+							addSpringboards(el, slides[upcoming].sbs, el);
+						}
+
+						el = gallery.masterPages[i].querySelector('span');
+						el.innerHTML = slides[upcoming].desc;
+					}
+				}
+
+				document.querySelector('#nav .selected').className = '';
+				dots[gallery.pageIndex+1].className = 'selected';
+			});
+		}
+
+	</script>
+	
+</apex:page>

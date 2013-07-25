@@ -1,0 +1,20 @@
+<apex:page controller="PackagesController" >  
+    <apex:form >
+        <apex:selectList value="{!selectedPackage}" multiselect="false">
+            <apex:selectOptions value="{!items}"/>
+        </apex:selectList> 
+        
+        <apex:pageBlock >
+              <apex:commandButton action="{!signWithDocuSign}" value="Sign with DocuSign"
+                   rerender="resultsPanel" status="status"/>
+        </apex:pageBlock>  
+
+        <!-- DEBUG printing
+         <apex:actionStatus id="status" startText="Calling DocuSign..."/>
+          <apex:outputPanel id="resultsPanel">
+               <apex:outputText value="{!responseStr}"/>
+          </apex:outputPanel>
+        -->  
+          
+  </apex:form>
+</apex:page>
